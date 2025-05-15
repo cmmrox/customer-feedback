@@ -1,0 +1,112 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// User/Admin model for authentication and system management
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  password      String
+  role          Role      @default(ADMIN)
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@map("users")
+}
+
+enum Role {
+  ADMIN
+  SUPER_ADMIN
+}
+
+// Staff members who receive feedback
+model Staff {
+  id            String    @id @default(cuid())
+  name          String
+  position      String?
+  profileImage  String?
+  contactInfo   String?
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  feedbacks     Feedback[]
+
+  @@map("staff")
+}
+
+// Customer feedback entries
+model Feedback {
+  id            String    @id @default(cuid())
+  experienceRating ExperienceRating
+  emotionRating   EmotionRating?
+  staffId        String?
+  staff          Staff?    @relation(fields: [staffId], references: [id])
+  comment        String?   @db.Text
+  createdAt      DateTime  @default(now())
+  dissatisfactionReasons DissatisfactionFeedback[]
+
+  @@map("feedback")
+}
+
+// Enum for initial experience rating
+enum ExperienceRating {
+  GOOD
+  NOT_SATISFIED
+}
+
+// Enum for emotion-based ratings
+enum EmotionRating {
+  HEART
+  LIKE
+  WOW
+  ANGRY
+}
+
+// Dissatisfaction reasons
+model DissatisfactionReason {
+  id            String    @id @default(cuid())
+  reason        String
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  feedbacks     DissatisfactionFeedback[]
+
+  @@map("dissatisfaction_reasons")
+}
+
+// Junction table for many-to-many relationship between feedback and dissatisfaction reasons
+model DissatisfactionFeedback {
+  id                    String    @id @default(cuid())
+  feedbackId            String
+  feedback              Feedback  @relation(fields: [feedbackId], references: [id])
+  dissatisfactionReasonId String
+  dissatisfactionReason DissatisfactionReason @relation(fields: [dissatisfactionReasonId], references: [id])
+  createdAt             DateTime  @default(now())
+
+  @@unique([feedbackId, dissatisfactionReasonId])
+  @@map("dissatisfaction_feedback")
+}
+
+// System configuration settings
+model SystemConfig {
+  id            String    @id @default(cuid())
+  key           String    @unique
+  value         String    @db.Text
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@map("system_config")
+}
