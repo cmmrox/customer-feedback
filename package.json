@@ -11,9 +11,11 @@
     "prisma:seed": "ts-node --transpile-only prisma/seed.ts"
   },
   "dependencies": {
+    "@auth/prisma-adapter": "^2.9.1",
     "@prisma/client": "^6.7.0",
     "bcrypt": "^6.0.0",
     "next": "15.3.2",
+    "next-auth": "^4.24.11",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
@@ -28,8 +30,8 @@
     "eslint-config-next": "15.3.2",
     "prisma": "^6.7.0",
     "tailwindcss": "^4",
-    "typescript": "^5",
-    "ts-node": "^10.9.2"
+    "ts-node": "^10.9.2",
+    "typescript": "^5"
   },
   "description": "This project is a web-based Customer Satisfaction Feedback System built with Next.js, TypeScript, and Tailwind CSS.",
   "main": "index.js",
