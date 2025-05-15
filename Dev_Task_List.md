@@ -23,11 +23,15 @@
 - [ ] Configure Prisma ORM
 - [ ] Create database migration scripts
 - [ ] Define database models:
-    - [ ] Users/Admins table
-    - [ ] Staff members table
-    - [ ] Feedback entries table
-    - [ ] Dissatisfaction reasons table
-    - [ ] Ratings categories table
+    - [ ] User model (admins)
+    - [ ] Staff model
+    - [ ] Feedback model
+    - [ ] Rating model (Heart, Like, Wow, Angry)
+    - [ ] FeedbackStaff junction model
+    - [ ] Category model
+    - [ ] DissatisfactionReason model
+    - [ ] FeedbackReason junction model
+    - [ ] SystemConfig model
 - [ ] Set up database relationships
 - [ ] Create database seed data for testing
 - [ ] Implement data access layer
@@ -51,8 +55,9 @@
 - [ ] Create initial experience rating page (Good/Not Satisfied)
 - [ ] Implement staff listing with profile images
 - [ ] Build rating component with emotion icons (Heart, Like, Wow, Angry)
-- [ ] Develop dissatisfaction reason selection interface
-- [ ] Create thank you/confirmation page
+- [ ] Develop dissatisfaction reason selection interface with category grouping
+- [ ] Implement optional comments field for negative feedback
+- [ ] Create thank you/confirmation page with automatic redirect
 - [ ] Implement session timeout reset mechanism (10 seconds)
 - [ ] Build feedback submission API endpoints
 - [ ] Add animation and transitions between pages
@@ -88,7 +93,7 @@
 ## 7. Reporting \& Analytics
 
 - [ ] Develop monthly staff rating reports
-- [ ] Create rating breakdown by emotion type
+- [ ] Create rating breakdown by emotion type (Heart, Like, Wow, Angry)
 - [ ] Build staff comparison charts and visualizations
 - [ ] Implement time-based trend analysis
 - [ ] Develop dissatisfaction reports
@@ -102,10 +107,11 @@
 ## 8. System Configuration
 
 - [ ] Create configuration management interface
+- [ ] Implement category management for dissatisfaction reasons
 - [ ] Implement dissatisfaction reasons management
 - [ ] Add branding/styling configuration
 - [ ] Create session timeout parameter settings
-- [ ] Implement system settings persistence
+- [ ] Implement system settings persistence with SystemConfig model
 - [ ] Add configuration backup/restore functionality
 - [ ] Build system status monitoring page
 
