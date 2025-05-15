@@ -1,4 +1,4 @@
-import { PrismaClient, Role, ExperienceRating, EmotionRating } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
@@ -7,8 +7,11 @@ async function main() {
   console.log('Seeding database...');
 
   // Clean up existing data
-  await prisma.dissatisfactionFeedback.deleteMany();
+  await prisma.feedbackReason.deleteMany();
+  await prisma.feedbackStaff.deleteMany();
+  await prisma.rating.deleteMany();
   await prisma.dissatisfactionReason.deleteMany();
+  await prisma.category.deleteMany();
   await prisma.feedback.deleteMany();
   await prisma.staff.deleteMany();
   await prisma.user.deleteMany();
@@ -18,10 +21,10 @@ async function main() {
   const hashedPassword = await bcrypt.hash('admin123', 10);
   const admin = await prisma.user.create({
     data: {
-      name: 'Admin User',
+      username: 'admin',
       email: 'admin@example.com',
       password: hashedPassword,
-      role: Role.ADMIN,
+      role: 'ADMIN',
     },
   });
 
@@ -33,7 +36,7 @@ async function main() {
       data: {
         name: 'John Smith',
         position: 'Sales Associate',
-        profileImage: '/images/staff/john-smith.jpg',
+        imageUrl: '/images/staff/john-smith.jpg',
         contactInfo: 'john.smith@example.com',
       },
     }),
@@ -41,7 +44,7 @@ async function main() {
       data: {
         name: 'Sarah Johnson',
         position: 'Customer Service Representative',
-        profileImage: '/images/staff/sarah-johnson.jpg',
+        imageUrl: '/images/staff/sarah-johnson.jpg',
         contactInfo: 'sarah.johnson@example.com',
       },
     }),
@@ -49,7 +52,7 @@ async function main() {
       data: {
         name: 'Michael Brown',
         position: 'Store Manager',
-        profileImage: '/images/staff/michael-brown.jpg',
+        imageUrl: '/images/staff/michael-brown.jpg',
         contactInfo: 'michael.brown@example.com',
       },
     }),
@@ -57,87 +60,167 @@ async function main() {
 
   console.log(`Created ${staff.length} staff members`);
 
+  // Create emotion ratings
+  const ratings = await Promise.all([
+    prisma.rating.create({
+      data: {
+        name: 'HEART',
+        icon: '❤️',
+      },
+    }),
+    prisma.rating.create({
+      data: {
+        name: 'LIKE',
+        icon: '👍',
+      },
+    }),
+    prisma.rating.create({
+      data: {
+        name: 'WOW',
+        icon: '🤩',
+      },
+    }),
+    prisma.rating.create({
+      data: {
+        name: 'ANGRY',
+        icon: '😠',
+      },
+    }),
+  ]);
+
+  console.log(`Created ${ratings.length} emotion ratings`);
+
+  // Create categories
+  const categories = await Promise.all([
+    prisma.category.create({
+      data: {
+        name: 'Service Issues',
+        description: 'Issues related to customer service quality',
+      },
+    }),
+    prisma.category.create({
+      data: {
+        name: 'Product Issues',
+        description: 'Issues related to product availability and quality',
+      },
+    }),
+    prisma.category.create({
+      data: {
+        name: 'Price Issues',
+        description: 'Issues related to pricing and value',
+      },
+    }),
+  ]);
+
+  console.log(`Created ${categories.length} categories`);
+
   // Create dissatisfaction reasons
   const reasons = await Promise.all([
     prisma.dissatisfactionReason.create({
       data: {
-        reason: 'Long waiting time',
+        description: 'Long waiting time',
+        categoryId: categories[0].id,
       },
     }),
     prisma.dissatisfactionReason.create({
       data: {
-        reason: 'Unfriendly staff',
+        description: 'Unfriendly staff',
+        categoryId: categories[0].id,
       },
     }),
     prisma.dissatisfactionReason.create({
       data: {
-        reason: 'Product not available',
+        description: 'Product not available',
+        categoryId: categories[1].id,
       },
     }),
     prisma.dissatisfactionReason.create({
       data: {
-        reason: 'High prices',
+        description: 'High prices',
+        categoryId: categories[2].id,
       },
     }),
     prisma.dissatisfactionReason.create({
       data: {
-        reason: 'Poor quality products',
+        description: 'Poor quality products',
+        categoryId: categories[1].id,
       },
     }),
   ]);
 
   console.log(`Created ${reasons.length} dissatisfaction reasons`);
 
-  // Create sample feedback entries
-  const feedbacks = await Promise.all([
-    // Positive feedback
-    prisma.feedback.create({
+  // Create positive feedback with staff ratings
+  const positiveFeedback1 = await prisma.feedback.create({
+    data: {
+      overallRating: 'GOOD',
+      comments: 'Great service!',
+    },
+  });
+
+  await prisma.feedbackStaff.create({
+    data: {
+      feedbackId: positiveFeedback1.id,
+      staffId: staff[0].id,
+      ratingId: ratings[0].id, // HEART
+    },
+  });
+
+  // Another positive feedback
+  const positiveFeedback2 = await prisma.feedback.create({
+    data: {
+      overallRating: 'GOOD',
+      comments: 'Very helpful staff',
+    },
+  });
+
+  await prisma.feedbackStaff.create({
+    data: {
+      feedbackId: positiveFeedback2.id,
+      staffId: staff[1].id,
+      ratingId: ratings[1].id, // LIKE
+    },
+  });
+
+  // Create negative feedback with dissatisfaction reasons
+  const negativeFeedback1 = await prisma.feedback.create({
+    data: {
+      overallRating: 'NOT_SATISFIED',
+      comments: 'Service was too slow',
+    },
+  });
+
+  await prisma.feedbackReason.create({
+    data: {
+      feedbackId: negativeFeedback1.id,
+      reasonId: reasons[0].id, // Long waiting time
+    },
+  });
+
+  // Another negative feedback with multiple reasons
+  const negativeFeedback2 = await prisma.feedback.create({
+    data: {
+      overallRating: 'NOT_SATISFIED',
+      comments: 'Staff was rude and product was not in stock',
+    },
+  });
+
+  await Promise.all([
+    prisma.feedbackReason.create({
       data: {
-        experienceRating: ExperienceRating.GOOD,
-        emotionRating: EmotionRating.HEART,
-        staffId: staff[0].id,
+        feedbackId: negativeFeedback2.id,
+        reasonId: reasons[1].id, // Unfriendly staff
       },
     }),
-    prisma.feedback.create({
+    prisma.feedbackReason.create({
       data: {
-        experienceRating: ExperienceRating.GOOD,
-        emotionRating: EmotionRating.LIKE,
-        staffId: staff[1].id,
-      },
-    }),
-    // Negative feedback
-    prisma.feedback.create({
-      data: {
-        experienceRating: ExperienceRating.NOT_SATISFIED,
-        comment: 'Service was too slow',
-        dissatisfactionReasons: {
-          create: [
-            {
-              dissatisfactionReasonId: reasons[0].id,
-            },
-          ],
-        },
-      },
-    }),
-    prisma.feedback.create({
-      data: {
-        experienceRating: ExperienceRating.NOT_SATISFIED,
-        comment: 'Staff was rude and product was not in stock',
-        dissatisfactionReasons: {
-          create: [
-            {
-              dissatisfactionReasonId: reasons[1].id,
-            },
-            {
-              dissatisfactionReasonId: reasons[2].id,
-            },
-          ],
-        },
+        feedbackId: negativeFeedback2.id,
+        reasonId: reasons[2].id, // Product not available
       },
     }),
   ]);
 
-  console.log(`Created ${feedbacks.length} feedback entries`);
+  console.log(`Created 4 feedback entries`);
 
   // System configurations
   const configs = await Promise.all([

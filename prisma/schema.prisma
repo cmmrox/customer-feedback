@@ -16,10 +16,10 @@ datasource db {
 // User/Admin model for authentication and system management
 model User {
   id            String    @id @default(cuid())
-  name          String
-  email         String    @unique
+  username      String    @unique
   password      String
-  role          Role      @default(ADMIN)
+  email         String    @unique
+  role          String    @default("ADMIN") // Can be ADMIN or SUPER_ADMIN
   isActive      Boolean   @default(true)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -27,77 +27,91 @@ model User {
   @@map("users")
 }
 
-enum Role {
-  ADMIN
-  SUPER_ADMIN
-}
-
 // Staff members who receive feedback
 model Staff {
-  id            String    @id @default(cuid())
+  id            String          @id @default(cuid())
   name          String
+  imageUrl      String?
   position      String?
-  profileImage  String?
   contactInfo   String?
-  isActive      Boolean   @default(true)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  feedbacks     Feedback[]
+  status        Boolean         @default(true)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  feedbackStaff FeedbackStaff[]
 
   @@map("staff")
 }
 
 // Customer feedback entries
 model Feedback {
-  id            String    @id @default(cuid())
-  experienceRating ExperienceRating
-  emotionRating   EmotionRating?
-  staffId        String?
-  staff          Staff?    @relation(fields: [staffId], references: [id])
-  comment        String?   @db.Text
-  createdAt      DateTime  @default(now())
-  dissatisfactionReasons DissatisfactionFeedback[]
+  id                String               @id @default(cuid())
+  timestamp         DateTime             @default(now())
+  overallRating     String               // "GOOD" or "NOT_SATISFIED"
+  comments          String?              @db.Text
+  feedbackStaff     FeedbackStaff[]
+  feedbackReasons   FeedbackReason[]
 
   @@map("feedback")
 }
 
-// Enum for initial experience rating
-enum ExperienceRating {
-  GOOD
-  NOT_SATISFIED
+// Emotion-based ratings (Heart, Like, Wow, Angry)
+model Rating {
+  id            String          @id @default(cuid())
+  name          String          @unique
+  icon          String
+  feedbackStaff FeedbackStaff[]
+
+  @@map("ratings")
 }
 
-// Enum for emotion-based ratings
-enum EmotionRating {
-  HEART
-  LIKE
-  WOW
-  ANGRY
-}
-
-// Dissatisfaction reasons
-model DissatisfactionReason {
+// Junction table for feedback to staff ratings
+model FeedbackStaff {
   id            String    @id @default(cuid())
-  reason        String
-  isActive      Boolean   @default(true)
+  feedbackId    String
+  feedback      Feedback  @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
+  staffId       String
+  staff         Staff     @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  ratingId      String
+  rating        Rating    @relation(fields: [ratingId], references: [id], onDelete: Cascade)
   createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  feedbacks     DissatisfactionFeedback[]
+
+  @@unique([feedbackId, staffId])
+  @@map("feedback_staff")
+}
+
+// Categories for grouping dissatisfaction reasons
+model Category {
+  id                    String                  @id @default(cuid())
+  name                  String                  @unique
+  description           String?
+  dissatisfactionReasons DissatisfactionReason[]
+
+  @@map("categories")
+}
+
+// Predefined reasons for customer dissatisfaction
+model DissatisfactionReason {
+  id            String            @id @default(cuid())
+  description   String
+  active        Boolean           @default(true)
+  categoryId    String
+  category      Category          @relation(fields: [categoryId], references: [id])
+  feedbackReasons FeedbackReason[]
 
   @@map("dissatisfaction_reasons")
 }
 
-// Junction table for many-to-many relationship between feedback and dissatisfaction reasons
-model DissatisfactionFeedback {
-  id                    String    @id @default(cuid())
+// Junction table for feedback to dissatisfaction reasons
+model FeedbackReason {
+  id                    String               @id @default(cuid())
   feedbackId            String
-  feedback              Feedback  @relation(fields: [feedbackId], references: [id])
-  dissatisfactionReasonId String
-  dissatisfactionReason DissatisfactionReason @relation(fields: [dissatisfactionReasonId], references: [id])
-  createdAt             DateTime  @default(now())
+  feedback              Feedback             @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
+  reasonId              String
+  reason                DissatisfactionReason @relation(fields: [reasonId], references: [id], onDelete: Cascade)
+  createdAt             DateTime             @default(now())
 
-  @@unique([feedbackId, dissatisfactionReasonId])
-  @@map("dissatisfaction_feedback")
+  @@unique([feedbackId, reasonId])
+  @@map("feedback_reasons")
 }
 
 // System configuration settings
