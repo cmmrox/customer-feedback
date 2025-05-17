@@ -39,11 +39,11 @@ export default function HomePage() {
         {/* Good Rating Button */}
         <button
           onClick={() => handleRatingSelect('good')}
-          className={`flex flex-col items-center ${
+          className={`flex flex-col items-center transform active:scale-95 hover:scale-105 ${
             selectedRating === 'good' ? 'scale-110' : ''
-          } transition-transform`}
+          } transition-all duration-200 ease-in-out cursor-pointer`}
         >
-          <div className="bg-white rounded-full p-4 mb-2">
+          <div className="bg-white rounded-full p-4 mb-2 shadow-lg hover:shadow-xl transition-shadow">
             <Image
               src="/emojis/good.png"
               alt="Good Rating"
@@ -58,11 +58,11 @@ export default function HomePage() {
         {/* Not Satisfied Button */}
         <button
           onClick={() => handleRatingSelect('not_satisfied')}
-          className={`flex flex-col items-center ${
+          className={`flex flex-col items-center transform active:scale-95 hover:scale-105 ${
             selectedRating === 'not_satisfied' ? 'scale-110' : ''
-          } transition-transform`}
+          } transition-all duration-200 ease-in-out cursor-pointer`}
         >
-          <div className="bg-white rounded-full p-4 mb-2">
+          <div className="bg-white rounded-full p-4 mb-2 shadow-lg hover:shadow-xl transition-shadow">
             <Image
               src="/emojis/not-satisfied.png"
               alt="Not Satisfied Rating"
