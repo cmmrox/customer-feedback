@@ -28,7 +28,10 @@ export default function LoginForm() {
       } else {
         router.push("/admin/dashboard");
       }
-    } catch (_error) {
+    } catch (
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      _error
+    ) {
       setError("An error occurred. Please try again.");
     } finally {
       setIsLoading(false);
