@@ -2,13 +2,18 @@
 
 import Image from 'next/image';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function HomePage() {
   const [selectedRating, setSelectedRating] = useState<'good' | 'not_satisfied' | null>(null);
+  const router = useRouter();
 
   const handleRatingSelect = async (rating: 'good' | 'not_satisfied') => {
     setSelectedRating(rating);
-    // Here we'll add the API call to save the feedback later
+    if (rating === 'good') {
+      router.push('/rate-staff');
+    }
+    // TODO: Handle 'not_satisfied' case
   };
 
   return (

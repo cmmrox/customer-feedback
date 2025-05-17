@@ -65,25 +65,25 @@ async function main() {
     prisma.rating.create({
       data: {
         name: 'HEART',
-        icon: '❤️',
+        icon: '/emojis/heart.png',
       },
     }),
     prisma.rating.create({
       data: {
         name: 'LIKE',
-        icon: '👍',
+        icon: '/emojis/like.png',
       },
     }),
     prisma.rating.create({
       data: {
         name: 'WOW',
-        icon: '🤩',
+        icon: '/emojis/wow.png',
       },
     }),
     prisma.rating.create({
       data: {
         name: 'ANGRY',
-        icon: '😠',
+        icon: '/emojis/angry.png',
       },
     }),
   ]);
