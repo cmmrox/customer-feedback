@@ -1,31 +1,6 @@
 version: '3.8'
 
 services:
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    restart: always
-    ports:
-      - "3000:3000"
-    environment:
-      - DATABASE_URL=${DATABASE_URL}
-      - NODE_ENV=production
-      - NEXTAUTH_URL=${NEXTAUTH_URL}
-      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
-      - UPLOAD_DIR=/app/uploads
-      - SESSION_TIMEOUT=10000
-    depends_on:
-      - db
-    volumes:
-      - uploads:/app/uploads
-    networks:
-      - app-network
-    deploy:
-      restart_policy:
-        condition: on-failure
-        max_attempts: 3
-
   db:
     image: mysql:8.0
     restart: always
@@ -51,7 +26,6 @@ services:
 
 volumes:
   mysql-data:
-  uploads:
 
 networks:
   app-network:
