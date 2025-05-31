@@ -9,7 +9,6 @@ async function main() {
   // Clean up existing data
   await prisma.feedbackReason.deleteMany();
   await prisma.feedbackStaff.deleteMany();
-  await prisma.rating.deleteMany();
   await prisma.dissatisfactionReason.deleteMany();
   await prisma.category.deleteMany();
   await prisma.feedback.deleteMany();
@@ -59,36 +58,6 @@ async function main() {
   ]);
 
   console.log(`Created ${staff.length} staff members`);
-
-  // Create emotion ratings
-  const ratings = await Promise.all([
-    prisma.rating.create({
-      data: {
-        name: 'HEART',
-        icon: '/emojis/heart.png',
-      },
-    }),
-    prisma.rating.create({
-      data: {
-        name: 'LIKE',
-        icon: '/emojis/like.png',
-      },
-    }),
-    prisma.rating.create({
-      data: {
-        name: 'WOW',
-        icon: '/emojis/wow.png',
-      },
-    }),
-    prisma.rating.create({
-      data: {
-        name: 'ANGRY',
-        icon: '/emojis/angry.png',
-      },
-    }),
-  ]);
-
-  console.log(`Created ${ratings.length} emotion ratings`);
 
   // Create categories
   const categories = await Promise.all([
@@ -150,7 +119,7 @@ async function main() {
 
   console.log(`Created ${reasons.length} dissatisfaction reasons`);
 
-  // Create positive feedback with staff ratings
+  // Create positive feedback with staff selection (no rating)
   const positiveFeedback1 = await prisma.feedback.create({
     data: {
       overallRating: 'GOOD',
@@ -162,7 +131,6 @@ async function main() {
     data: {
       feedbackId: positiveFeedback1.id,
       staffId: staff[0].id,
-      ratingId: ratings[0].id, // HEART
     },
   });
 
@@ -178,7 +146,6 @@ async function main() {
     data: {
       feedbackId: positiveFeedback2.id,
       staffId: staff[1].id,
-      ratingId: ratings[1].id, // LIKE
     },
   });
 
@@ -193,34 +160,9 @@ async function main() {
   await prisma.feedbackReason.create({
     data: {
       feedbackId: negativeFeedback1.id,
-      reasonId: reasons[0].id, // Long waiting time
+      reasonId: reasons[0].id,
     },
   });
-
-  // Another negative feedback with multiple reasons
-  const negativeFeedback2 = await prisma.feedback.create({
-    data: {
-      overallRating: 'NOT_SATISFIED',
-      comments: 'Staff was rude and product was not in stock',
-    },
-  });
-
-  await Promise.all([
-    prisma.feedbackReason.create({
-      data: {
-        feedbackId: negativeFeedback2.id,
-        reasonId: reasons[1].id, // Unfriendly staff
-      },
-    }),
-    prisma.feedbackReason.create({
-      data: {
-        feedbackId: negativeFeedback2.id,
-        reasonId: reasons[2].id, // Product not available
-      },
-    }),
-  ]);
-
-  console.log(`Created 4 feedback entries`);
 
   // System configurations
   const configs = await Promise.all([

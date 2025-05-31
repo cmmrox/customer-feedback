@@ -55,14 +55,7 @@ model Feedback {
 }
 
 // Emotion-based ratings (Heart, Like, Wow, Angry)
-model Rating {
-  id            String          @id @default(cuid())
-  name          String          @unique
-  icon          String
-  feedbackStaff FeedbackStaff[]
-
-  @@map("ratings")
-}
+// Removed Rating model
 
 // Junction table for feedback to staff ratings
 model FeedbackStaff {
@@ -71,8 +64,6 @@ model FeedbackStaff {
   feedback      Feedback  @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
   staffId       String
   staff         Staff     @relation(fields: [staffId], references: [id], onDelete: Cascade)
-  ratingId      String
-  rating        Rating    @relation(fields: [ratingId], references: [id], onDelete: Cascade)
   createdAt     DateTime  @default(now())
 
   @@unique([feedbackId, staffId])

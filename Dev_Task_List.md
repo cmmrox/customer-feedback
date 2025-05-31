@@ -26,7 +26,6 @@
     - [ ] User model (admins)
     - [ ] Staff model
     - [ ] Feedback model
-    - [ ] Rating model (Heart, Like, Wow, Angry)
     - [ ] FeedbackStaff junction model
     - [ ] Category model
     - [ ] DissatisfactionReason model
@@ -54,7 +53,7 @@
 
 - [ ] Create initial experience rating page (Good/Not Satisfied)
 - [ ] Implement staff listing with profile images
-- [ ] Build rating component with emotion icons (Heart, Like, Wow, Angry)
+- [ ] Build staff selection component (tap to select staff, no rating)
 - [ ] Develop dissatisfaction reason selection interface with category grouping
 - [ ] Implement optional comments field for negative feedback
 - [ ] Create thank you/confirmation page with automatic redirect
@@ -92,8 +91,7 @@
 
 ## 7. Reporting \& Analytics
 
-- [ ] Develop monthly staff rating reports
-- [ ] Create rating breakdown by emotion type (Heart, Like, Wow, Angry)
+- [ ] Develop monthly staff selection reports
 - [ ] Build staff comparison charts and visualizations
 - [ ] Implement time-based trend analysis
 - [ ] Develop dissatisfaction reports

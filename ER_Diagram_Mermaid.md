@@ -31,12 +31,6 @@ erDiagram
         string comments
     }
     
-    Rating {
-        string id PK
-        string name
-        string icon
-    }
-    
     Category {
         string id PK
         string name
@@ -54,7 +48,6 @@ erDiagram
         string id PK
         string feedbackId FK
         string staffId FK
-        string ratingId FK
         datetime createdAt
     }
     
@@ -73,9 +66,8 @@ erDiagram
         datetime updatedAt
     }
     
-    Feedback ||--o{ FeedbackStaff : "has ratings for"
-    Staff ||--o{ FeedbackStaff : "receives ratings in"
-    Rating ||--o{ FeedbackStaff : "used in"
+    Feedback ||--o{ FeedbackStaff : "has staff selections"
+    Staff ||--o{ FeedbackStaff : "selected in"
     
     Feedback ||--o{ FeedbackReason : "has reasons"
     DissatisfactionReason ||--o{ FeedbackReason : "associated with"
@@ -86,25 +78,21 @@ erDiagram
 ## Relationship Descriptions
 
 1. **Feedback to FeedbackStaff**: One-to-Many
-   - One feedback entry can have multiple staff ratings
+   - One feedback entry can have multiple staff selections
    - Each FeedbackStaff entry belongs to exactly one Feedback
 
 2. **Staff to FeedbackStaff**: One-to-Many
-   - One staff member can be rated in multiple feedback entries
+   - One staff member can be selected in multiple feedback entries
    - Each FeedbackStaff entry references exactly one Staff member
 
-3. **Rating to FeedbackStaff**: One-to-Many
-   - One rating type (Heart, Like, Wow, Angry) can be used in many FeedbackStaff entries
-   - Each FeedbackStaff entry has exactly one Rating
-
-4. **Feedback to FeedbackReason**: One-to-Many
+3. **Feedback to FeedbackReason**: One-to-Many
    - One feedback entry can have multiple dissatisfaction reasons
    - Each FeedbackReason entry belongs to exactly one Feedback
 
-5. **DissatisfactionReason to FeedbackReason**: One-to-Many
+4. **DissatisfactionReason to FeedbackReason**: One-to-Many
    - One dissatisfaction reason can be associated with multiple feedback entries
    - Each FeedbackReason entry references exactly one DissatisfactionReason
 
-6. **Category to DissatisfactionReason**: One-to-Many
+5. **Category to DissatisfactionReason**: One-to-Many
    - One category can contain multiple dissatisfaction reasons
    - Each dissatisfaction reason belongs to exactly one category 

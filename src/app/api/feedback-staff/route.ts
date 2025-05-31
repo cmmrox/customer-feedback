@@ -6,9 +6,9 @@ const prisma = new PrismaClient();
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { feedbackId, staffId, ratingId } = body;
+    const { feedbackId, staffId } = body;
 
-    if (!feedbackId || !staffId || !ratingId) {
+    if (!feedbackId || !staffId) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Create or update the feedback staff rating
+    // Create or update the feedback staff entry (no rating)
     const feedbackStaff = await prisma.feedbackStaff.upsert({
       where: {
         feedbackId_staffId: {
@@ -38,13 +38,10 @@ export async function POST(request: NextRequest) {
           staffId
         }
       },
-      update: {
-        ratingId
-      },
+      update: {},
       create: {
         feedbackId,
-        staffId,
-        ratingId
+        staffId
       }
     });
 
@@ -52,7 +49,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Error creating feedback staff:', error);
     return NextResponse.json(
-      { error: 'Failed to create feedback staff rating' },
+      { error: 'Failed to create feedback staff entry' },
       { status: 500 }
     );
   }

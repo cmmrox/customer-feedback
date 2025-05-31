@@ -6,7 +6,7 @@
 
 ### 1.1 Purpose
 
-This document outlines the requirements for a web-based Customer Satisfaction Feedback System designed to collect and analyze customer feedback for retail shops. The system will provide an intuitive interface for customers to rate their shopping experience and a comprehensive admin portal for management and reporting.
+This document outlines the requirements for a web-based Customer Satisfaction Feedback System designed to collect and analyze customer feedback for retail shops. The system will provide an intuitive interface for customers to select the staff members they interacted with and a comprehensive admin portal for management and reporting.
 
 ### 1.2 Scope
 
@@ -18,8 +18,8 @@ The application consists of two main components:
 
 ### 1.3 Definitions
 
-- **Feedback**: Customer ratings and comments about their shopping experience
-- **Staff**: Shop employees who serve customers and receive ratings
+- **Feedback**: Customer selection of staff and comments about their shopping experience
+- **Staff**: Shop employees who serve customers and can be selected in feedback
 - **Admin**: Users with privileges to manage the system and view reports
 
 
@@ -50,8 +50,7 @@ To provide shops with a user-friendly digital platform that captures customer sa
 - If "Good" is selected, display a staff listing with:
     - Staff profile images
     - Staff names
-    - Four rating options per staff member: Heart, Like, Wow, Angry
-- User can select one emotion-based rating for any staff member who served them
+    - User can tap/select any staff member they interacted with (no rating/emotion selection)
 - Upon selection, redirect to the "Thank You" page
 
 
@@ -102,12 +101,12 @@ To provide shops with a user-friendly digital platform that captures customer sa
 
 #### 3.2.3 Reporting and Analytics
 
-- Monthly staff rating reports showing:
-    - Total ratings received per emotion type (Heart, Like, Wow, Angry)
+- Monthly staff interaction reports showing:
+    - Total number of times each staff member was selected by customers
     - Comparison between staff members
     - Trends over time with graphical representation
 - Dissatisfaction reports showing:
-    - Total count of "Not Satisfied" ratings per month
+    - Total count of "Not Satisfied" feedback per month
     - Breakdown by reason categories
     - Frequency analysis of recurring issues
 - Export reports in PDF and Excel formats
@@ -190,12 +189,13 @@ To provide shops with a user-friendly digital platform that captures customer sa
     - Staff
     - Feedback entries
     - Feedback reasons
-    - Rating categories
+    - Categories
+    - System configuration
 
 
 ### 5.4 API Endpoints
 
-- Customer feedback submission
+- Customer feedback submission (staff selection, dissatisfaction reasons)
 - Staff management CRUD operations
 - Authentication endpoints
 - Reporting data retrieval
@@ -241,7 +241,7 @@ To provide shops with a user-friendly digital platform that captures customer sa
 ### 7.1 Phase 1: Customer Feedback Portal
 
 - Initial UI design and approval
-- Development of feedback collection flows
+- Development of feedback collection flows (staff selection, dissatisfaction reasons)
 - Implementation of timeout functionality
 - Testing with sample users
 
@@ -299,7 +299,7 @@ To provide shops with a user-friendly digital platform that captures customer sa
 ### 9.2 Mockup Screens
 
 - Initial feedback selection screen
-- Staff rating screen
+- Staff selection screen
 - Dissatisfaction reason selection screen
 - Admin dashboard
 - Staff management interface

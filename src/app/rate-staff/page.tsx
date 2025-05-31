@@ -4,12 +4,6 @@ import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
-interface Rating {
-  id: string;
-  name: string;
-  icon: string;
-}
-
 interface StaffMember {
   id: string;
   name: string;
@@ -18,8 +12,7 @@ interface StaffMember {
 
 export default function RateStaffPage() {
   const [staff, setStaff] = useState<StaffMember[]>([]);
-  const [ratings, setRatings] = useState<Rating[]>([]);
-  const [staffRatings, setStaffRatings] = useState<Record<string, string>>({});
+  const [selectedStaff, setSelectedStaff] = useState<string | null>(null);
   const [feedbackId] = useState(() => uuidv4());
 
   useEffect(() => {
@@ -30,12 +23,6 @@ export default function RateStaffPage() {
         if (!staffResponse.ok) throw new Error('Failed to fetch staff');
         const staffData = await staffResponse.json();
         setStaff(staffData);
-
-        // Fetch available ratings
-        const ratingsResponse = await fetch('/api/ratings');
-        if (!ratingsResponse.ok) throw new Error('Failed to fetch ratings');
-        const ratingsData = await ratingsResponse.json();
-        setRatings(ratingsData);
       } catch (error) {
         console.error('Error fetching data:', error);
       }
@@ -44,8 +31,9 @@ export default function RateStaffPage() {
     fetchData();
   }, []);
 
-  const handleRating = async (staffId: string, ratingId: string) => {
+  const handleStaffSelect = async (staffId: string) => {
     try {
+      setSelectedStaff(staffId);
       const response = await fetch('/api/feedback-staff', {
         method: 'POST',
         headers: {
@@ -53,19 +41,14 @@ export default function RateStaffPage() {
         },
         body: JSON.stringify({
           feedbackId,
-          staffId,
-          ratingId
+          staffId
         }),
       });
 
-      if (!response.ok) throw new Error('Failed to submit rating');
-
-      setStaffRatings(prev => ({
-        ...prev,
-        [staffId]: ratingId
-      }));
+      if (!response.ok) throw new Error('Failed to submit staff selection');
+      // Optionally handle success (e.g., show thank you message)
     } catch (error) {
-      console.error('Error submitting rating:', error);
+      console.error('Error submitting staff selection:', error);
     }
   };
 
@@ -76,7 +59,11 @@ export default function RateStaffPage() {
 
       <div className="w-full max-w-2xl space-y-4">
         {staff.map((staffMember) => (
-          <div key={staffMember.id} className="bg-white rounded-lg p-4 flex items-center gap-4">
+          <button
+            key={staffMember.id}
+            className={`bg-white rounded-lg p-4 flex items-center gap-4 w-full transition-transform ${selectedStaff === staffMember.id ? 'scale-105 ring-2 ring-yellow-500' : ''}`}
+            onClick={() => handleStaffSelect(staffMember.id)}
+          >
             <div className="w-16 h-16 relative">
               <Image
                 src={staffMember.imageUrl || '/placeholder-staff.png'}
@@ -86,25 +73,7 @@ export default function RateStaffPage() {
               />
             </div>
             <span className="font-semibold flex-grow">{staffMember.name}</span>
-            <div className="flex gap-2">
-              {ratings.map((rating) => (
-                <button
-                  key={rating.id}
-                  onClick={() => handleRating(staffMember.id, rating.id)}
-                  className={`p-2 rounded-full transition-transform ${
-                    staffRatings[staffMember.id] === rating.id ? 'scale-110' : ''
-                  }`}
-                >
-                  <Image 
-                    src={rating.icon} 
-                    alt={rating.name} 
-                    width={32} 
-                    height={32}
-                  />
-                </button>
-              ))}
-            </div>
-          </div>
+          </button>
         ))}
       </div>
     </div>
