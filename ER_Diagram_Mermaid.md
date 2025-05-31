@@ -2,73 +2,85 @@
 
 ```mermaid
 erDiagram
-    Users {
-        int id PK
+    User {
+        string id PK
         string username
         string password
         string email
         string role
-        datetime created_at
-        datetime updated_at
+        bool isActive
+        datetime createdAt
+        datetime updatedAt
     }
     
     Staff {
-        int id PK
+        string id PK
         string name
-        string image_url
+        string imageUrl
         string position
-        string contact_info
+        string contactInfo
         bool status
-        datetime created_at
-        datetime updated_at
+        datetime createdAt
+        datetime updatedAt
     }
     
     Feedback {
-        int id PK
+        string id PK
         datetime timestamp
-        string overall_rating
+        string overallRating
         string comments
     }
     
-    Ratings {
-        int id PK
+    Rating {
+        string id PK
         string name
         string icon
     }
     
-    DissatisfactionReasons {
-        int id PK
-        string description
-        bool active
-    }
-    
-    FeedbackStaff {
-        int id PK
-        int feedback_id FK
-        int staff_id FK
-        int rating_id FK
-    }
-    
-    FeedbackReason {
-        int id PK
-        int feedback_id FK
-        int reason_id FK
-    }
-    
-    Categories {
-        int id PK
+    Category {
+        string id PK
         string name
         string description
     }
     
+    DissatisfactionReason {
+        string id PK
+        string description
+        bool active
+        string categoryId FK
+    }
+    
+    FeedbackStaff {
+        string id PK
+        string feedbackId FK
+        string staffId FK
+        string ratingId FK
+        datetime createdAt
+    }
+    
+    FeedbackReason {
+        string id PK
+        string feedbackId FK
+        string reasonId FK
+        datetime createdAt
+    }
+    
+    SystemConfig {
+        string id PK
+        string key
+        string value
+        datetime createdAt
+        datetime updatedAt
+    }
+    
     Feedback ||--o{ FeedbackStaff : "has ratings for"
     Staff ||--o{ FeedbackStaff : "receives ratings in"
-    Ratings ||--o{ FeedbackStaff : "used in"
+    Rating ||--o{ FeedbackStaff : "used in"
     
     Feedback ||--o{ FeedbackReason : "has reasons"
-    DissatisfactionReasons ||--o{ FeedbackReason : "associated with"
+    DissatisfactionReason ||--o{ FeedbackReason : "associated with"
     
-    Categories ||--o{ DissatisfactionReasons : "categorizes"
+    Category ||--o{ DissatisfactionReason : "categorizes"
 ```
 
 ## Relationship Descriptions
@@ -81,7 +93,7 @@ erDiagram
    - One staff member can be rated in multiple feedback entries
    - Each FeedbackStaff entry references exactly one Staff member
 
-3. **Ratings to FeedbackStaff**: One-to-Many
+3. **Rating to FeedbackStaff**: One-to-Many
    - One rating type (Heart, Like, Wow, Angry) can be used in many FeedbackStaff entries
    - Each FeedbackStaff entry has exactly one Rating
 
@@ -89,10 +101,10 @@ erDiagram
    - One feedback entry can have multiple dissatisfaction reasons
    - Each FeedbackReason entry belongs to exactly one Feedback
 
-5. **DissatisfactionReasons to FeedbackReason**: One-to-Many
+5. **DissatisfactionReason to FeedbackReason**: One-to-Many
    - One dissatisfaction reason can be associated with multiple feedback entries
    - Each FeedbackReason entry references exactly one DissatisfactionReason
 
-6. **Categories to DissatisfactionReasons**: One-to-Many
+6. **Category to DissatisfactionReason**: One-to-Many
    - One category can contain multiple dissatisfaction reasons
    - Each dissatisfaction reason belongs to exactly one category 
