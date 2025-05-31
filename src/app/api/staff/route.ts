@@ -12,7 +12,8 @@ export async function GET() {
       select: {
         id: true,
         name: true,
-        imageUrl: true
+        imageUrl: true,
+        position: true
       },
       orderBy: {
         name: 'asc'
