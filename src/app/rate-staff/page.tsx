@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
+import { useRouter } from 'next/navigation';
 
 interface StaffMember {
   id: string;
@@ -15,6 +16,7 @@ export default function RateStaffPage() {
   const [staff, setStaff] = useState<StaffMember[]>([]);
   const [selectedStaff, setSelectedStaff] = useState<string | null>(null);
   const [feedbackId] = useState(() => uuidv4());
+  const router = useRouter();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -47,7 +49,7 @@ export default function RateStaffPage() {
       });
 
       if (!response.ok) throw new Error('Failed to submit staff selection');
-      // Optionally handle success (e.g., show thank you message)
+      router.push('/thank-you');
     } catch (error) {
       console.error('Error submitting staff selection:', error);
     }
