@@ -19,10 +19,10 @@ export default function HomePage() {
         setIsLoading(false);
       }, 500);
     } else {
-      // Simulate loading for demo, replace with actual logic later
+      // Navigate to dissatisfaction reasons page for 'not_satisfied'
       setTimeout(() => {
+        router.push('/dissatisfaction-reasons');
         setIsLoading(false);
-        // TODO: Handle 'not_satisfied' case
       }, 500);
     }
   };
