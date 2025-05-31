@@ -15,15 +15,15 @@ export default function HomePage() {
     if (rating === 'good') {
       // Simulate loading for demo, remove setTimeout if router.push is enough
       setTimeout(() => {
-        setIsLoading(false);
         router.push('/rate-staff');
-      }, 1000);
+        setIsLoading(false);
+      }, 500);
     } else {
       // Simulate loading for demo, replace with actual logic later
       setTimeout(() => {
         setIsLoading(false);
         // TODO: Handle 'not_satisfied' case
-      }, 1000);
+      }, 500);
     }
   };
 
