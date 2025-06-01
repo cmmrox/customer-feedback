@@ -14,12 +14,6 @@ const months = [
   "June 2025",
 ];
 
-const reportTypes = [
-  "All Reports",
-  "Staff Selections",
-  "Dissatisfaction",
-];
-
 const staffSelections = [
   { id: "1", name: "Alice Wonderland", count: 120 },
   { id: "2", name: "Bob The Builder", count: 95 },
@@ -54,7 +48,6 @@ const dissatisfactionReasons = [
 
 export default function AdminDashboard() {
   const [selectedMonth, setSelectedMonth] = useState("June 2025");
-  const [reportType, setReportType] = useState("All Reports");
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -65,25 +58,12 @@ export default function AdminDashboard() {
             <label htmlFor="month" className="text-sm font-medium text-gray-700 mb-1">Select Month:</label>
             <select
               id="month"
-              className="border rounded px-3 py-2 text-sm"
+              className="border rounded px-3 py-2 text-sm text-gray-900 bg-white"
               value={selectedMonth}
               onChange={e => setSelectedMonth(e.target.value)}
             >
               {months.map(month => (
                 <option key={month} value={month}>{month}</option>
-              ))}
-            </select>
-          </div>
-          <div className="flex flex-col">
-            <label htmlFor="report-type" className="text-sm font-medium text-gray-700 mb-1">Report Type:</label>
-            <select
-              id="report-type"
-              className="border rounded px-3 py-2 text-sm"
-              value={reportType}
-              onChange={e => setReportType(e.target.value)}
-            >
-              {reportTypes.map(type => (
-                <option key={type} value={type}>{type}</option>
               ))}
             </select>
           </div>
