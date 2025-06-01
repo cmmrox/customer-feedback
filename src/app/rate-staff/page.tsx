@@ -30,6 +30,7 @@ export default function RateStaffPage() {
   const [selectedStaff, setSelectedStaff] = useState<string | null>(null);
   const [feedbackId] = useState(() => uuidv4());
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [submittingStaffId, setSubmittingStaffId] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -52,8 +53,10 @@ export default function RateStaffPage() {
   }, []);
 
   const handleStaffSelect = async (staffId: string) => {
+    if (submittingStaffId) return; // Prevent double submit
+    setSubmittingStaffId(staffId);
+    setSelectedStaff(staffId);
     try {
-      setSelectedStaff(staffId);
       const response = await fetch('/api/feedback-staff', {
         method: 'POST',
         headers: {
@@ -69,6 +72,7 @@ export default function RateStaffPage() {
       router.push('/thank-you');
     } catch (error) {
       console.error('Error submitting staff selection:', error);
+      setSubmittingStaffId(null); // Allow retry
     }
   };
 
@@ -83,8 +87,9 @@ export default function RateStaffPage() {
             : staff.map((staffMember) => (
                 <button
                   key={staffMember.id}
-                  className={`bg-white rounded-xl shadow-md p-6 flex items-center gap-4 w-full transition-transform min-h-[110px] ${selectedStaff === staffMember.id ? 'scale-105 ring-2 ring-yellow-500' : ''}`}
+                  className={`bg-white rounded-xl shadow-md p-6 flex items-center gap-4 w-full transition-transform min-h-[110px] ${selectedStaff === staffMember.id ? 'scale-105 ring-2 ring-yellow-500' : ''} ${!!submittingStaffId ? 'opacity-60 cursor-not-allowed' : ''}`}
                   onClick={() => handleStaffSelect(staffMember.id)}
+                  disabled={!!submittingStaffId}
                 >
                   <div className="w-20 h-20 relative flex-shrink-0">
                     <Image
@@ -93,6 +98,14 @@ export default function RateStaffPage() {
                       fill
                       className="rounded-full object-cover border border-gray-200"
                     />
+                    {submittingStaffId === staffMember.id && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-70 rounded-full">
+                        <svg className="animate-spin h-8 w-8 text-yellow-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+                        </svg>
+                      </div>
+                    )}
                   </div>
                   <div className="flex flex-col items-start flex-grow">
                     <span className="font-bold text-lg mb-1">{staffMember.name}</span>
