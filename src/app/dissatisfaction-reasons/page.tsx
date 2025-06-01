@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { v4 as uuidv4 } from "uuid";
+import { Shimmer } from "@/components/ui/shimmer";
 
 interface DissatisfactionReason {
   id: string;
@@ -58,7 +59,7 @@ export default function DissatisfactionReasonsPage() {
         <h1 className="text-3xl font-bold text-center mb-2">We&apos;re sorry to hear that.<br />What went wrong?</h1>
         <p className="text-center mb-6 text-sm">Please select all that apply. Your feedback helps us improve.</p>
         {loading ? (
-          <div className="text-center py-8">Loading reasons...</div>
+          <Shimmer />
         ) : error ? (
           <div className="text-center text-red-600 py-8">{error}</div>
         ) : (
