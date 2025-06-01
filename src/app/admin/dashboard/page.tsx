@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { StaffBarChart } from "@/components/ui/staff-bar-chart";
 import { StaffSelectionTrendsChart } from "@/components/ui/staff-selection-trends-chart";
+import { DissatisfactionPieChart } from "@/components/ui/dissatisfaction-pie-chart";
 
 const months = [
   "January 2025",
@@ -36,6 +37,20 @@ const selectionTrends = [
   { month: "Jun", Alice: 40, Bob: 30, Charlie: 22 },
 ];
 const staffNames = ["Alice", "Bob", "Charlie"];
+
+// Add dummy data for dissatisfaction reports
+const dissatisfactionSummary = {
+  month: "June 2025",
+  count: 35,
+};
+
+const dissatisfactionReasons = [
+  { reason: "Long Wait Times", value: 12, trend: "decreased" },
+  { reason: "Product Availability", value: 8, trend: "increased" },
+  { reason: "Staff Unhelpfulness", value: 7, trend: "stable" },
+  { reason: "Store Cleanliness", value: 5, trend: "decreased" },
+  { reason: "Pricing Issues", value: 3, trend: "stable" },
+];
 
 export default function AdminDashboard() {
   const [selectedMonth, setSelectedMonth] = useState("June 2025");
@@ -131,6 +146,78 @@ export default function AdminDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Dissatisfaction Reports */}
+      <div className="max-w-7xl mx-auto mt-10 px-4">
+        <h2 className="text-2xl font-bold mb-6 text-gray-900">Dissatisfaction Reports</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 items-stretch">
+          {/* Monthly "Not Satisfied" Count */}
+          <div className="bg-white rounded-lg shadow p-6 flex flex-1 min-h-[260px] items-center justify-center">
+            <div className="flex flex-col items-center justify-center w-full h-full">
+              <div className="text-md font-semibold text-red-700 mb-2 text-center">Monthly &quot;Not Satisfied&quot; Count</div>
+              <div className="text-6xl font-extrabold text-red-600 mb-2 text-center">{dissatisfactionSummary.count}</div>
+              <div className="text-xs text-gray-500 text-center">
+                Total &quot;Not Satisfied&quot; feedback received in {dissatisfactionSummary.month}.
+              </div>
+            </div>
+          </div>
+          {/* Dissatisfaction by Reason (Pie Chart) */}
+          <div className="bg-white rounded-lg shadow p-6 flex flex-col items-center flex-1 min-h-[260px]">
+            <div className="text-md font-semibold text-red-700 mb-2">Dissatisfaction by Reason</div>
+            <div className="flex-1 flex items-center justify-center w-full bg-gray-100 rounded-lg h-64">
+              <DissatisfactionPieChart data={dissatisfactionReasons} />
+            </div>
+            <div className="text-xs text-gray-500 mt-2 text-center">
+              Breakdown of &quot;Not Satisfied&quot; feedback by common reason categories.
+            </div>
+          </div>
+        </div>
+        {/* Recurring Issues Analysis */}
+        <div className="bg-white rounded-xl shadow-md p-6 mt-2">
+          <div className="text-lg font-semibold text-red-600 mb-4">Recurring Issues Analysis</div>
+          <table className="min-w-full text-sm border-separate border-spacing-0">
+            <thead>
+              <tr className="bg-gray-50">
+                <th className="px-4 py-2 text-left text-gray-700 font-semibold tracking-wide text-xs">ISSUE/REASON CATEGORY</th>
+                <th className="px-4 py-2 text-left text-gray-700 font-semibold tracking-wide text-xs">FREQUENCY (THIS MONTH)</th>
+                <th className="px-4 py-2 text-left text-gray-700 font-semibold tracking-wide text-xs">TREND (VS. LAST MONTH)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {dissatisfactionReasons.map((item, idx) => (
+                <tr key={item.reason} className={idx !== dissatisfactionReasons.length - 1 ? 'border-b' : ''}>
+                  <td className="px-4 py-3 text-gray-900 whitespace-nowrap font-medium">{item.reason}</td>
+                  <td className="px-4 py-3 text-gray-900 whitespace-nowrap">{item.value}</td>
+                  <td className="px-4 py-3 whitespace-nowrap">
+                    {item.trend === "decreased" && (
+                      <span className="text-green-600 flex items-center gap-1 font-medium">
+                        <span className="material-icons text-base align-middle">arrow_downward</span>
+                        <span>Decreased</span>
+                      </span>
+                    )}
+                    {item.trend === "increased" && (
+                      <span className="text-red-600 flex items-center gap-1 font-medium">
+                        <span className="material-icons text-base align-middle">arrow_upward</span>
+                        <span>Increased</span>
+                      </span>
+                    )}
+                    {item.trend === "stable" && (
+                      <span className="text-gray-600 flex items-center gap-1 font-medium">
+                        <span className="material-icons text-base align-middle">horizontal_rule</span>
+                        <span>Stable</span>
+                      </span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {/* Footer */}
+      <footer className="w-full bg-white border-t mt-12 py-6 px-4 flex items-center justify-center text-xs text-gray-500 rounded-t-lg shadow-inner" style={{ minHeight: '56px' }}>
+        <span>&copy; {new Date().getFullYear()} Customer Feedback Dashboard. All rights reserved.</span>
+      </footer>
     </div>
   );
 } 
