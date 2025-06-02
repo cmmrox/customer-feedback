@@ -1,10 +1,11 @@
 "use client";
 
 import { useAuth } from "@/hooks/useAuth";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { StaffBarChart } from "@/components/ui/staff-bar-chart";
 import { StaffSelectionTrendsChart } from "@/components/ui/staff-selection-trends-chart";
 import { DissatisfactionPieChart } from "@/components/ui/dissatisfaction-pie-chart";
+import type { StaffSelection } from "@/lib/staff-selection";
 
 const months = [
   "January 2025",
@@ -13,13 +14,6 @@ const months = [
   "April 2025",
   "May 2025",
   "June 2025",
-];
-
-const staffSelections = [
-  { id: "1", name: "Alice Wonderland", count: 120 },
-  { id: "2", name: "Bob The Builder", count: 95 },
-  { id: "3", name: "Charlie Chaplin", count: 110 },
-  { id: "4", name: "Diana Prince", count: 88 },
 ];
 
 // Dummy data for selection trends
@@ -50,6 +44,30 @@ const dissatisfactionReasons = [
 export default function AdminDashboard() {
   const { user, logout } = useAuth();
   const [selectedMonth, setSelectedMonth] = useState("June 2025");
+  const [staffSelections, setStaffSelections] = useState<StaffSelection[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function fetchStaffSelections() {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const res = await fetch(`/api/staff-selections?month=${encodeURIComponent(selectedMonth)}`);
+        if (!res.ok) throw new Error("Failed to fetch staff selections");
+        const data = await res.json();
+        setStaffSelections(data);
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.error(err);
+        setError("Could not load staff selections");
+        setStaffSelections([]);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchStaffSelections();
+  }, [selectedMonth]);
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -107,22 +125,30 @@ export default function AdminDashboard() {
           {/* Staff Member Selections */}
           <div className="bg-white rounded-lg shadow p-6 flex flex-col">
             <h3 className="text-lg font-semibold mb-4 text-blue-700">Staff Member Selections</h3>
-            <table className="min-w-full text-sm mb-4">
-              <thead>
-                <tr className="bg-gray-50">
-                  <th className="px-4 py-2 text-left text-gray-800">STAFF NAME</th>
-                  <th className="px-4 py-2 text-left text-gray-800">TIMES SELECTED</th>
-                </tr>
-              </thead>
-              <tbody>
-                {staffSelections.map((staff) => (
-                  <tr key={staff.id} className="border-b">
-                    <td className="px-4 py-2 text-gray-700">{staff.name}</td>
-                    <td className="px-4 py-2 text-gray-700">{staff.count}</td>
+            {isLoading ? (
+              <div className="text-center py-8 text-gray-500">Loading...</div>
+            ) : error ? (
+              <div className="text-center py-8 text-red-600">{error}</div>
+            ) : staffSelections.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">No data for this month.</div>
+            ) : (
+              <table className="min-w-full text-sm mb-4">
+                <thead>
+                  <tr className="bg-gray-50">
+                    <th className="px-4 py-2 text-left text-gray-800">STAFF NAME</th>
+                    <th className="px-4 py-2 text-left text-gray-800">TIMES SELECTED</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {staffSelections.map((staff) => (
+                    <tr key={staff.id} className="border-b">
+                      <td className="px-4 py-2 text-gray-700">{staff.name}</td>
+                      <td className="px-4 py-2 text-gray-700">{staff.count}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
           {/* Staff Comparison (Selections) */}
           <div className="bg-white rounded-lg shadow p-6 flex flex-col">
