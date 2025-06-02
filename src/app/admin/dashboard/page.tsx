@@ -1,5 +1,6 @@
 "use client";
 
+import { useAuth } from "@/hooks/useAuth";
 import { useState } from "react";
 import { StaffBarChart } from "@/components/ui/staff-bar-chart";
 import { StaffSelectionTrendsChart } from "@/components/ui/staff-selection-trends-chart";
@@ -47,10 +48,32 @@ const dissatisfactionReasons = [
 ];
 
 export default function AdminDashboard() {
+  const { user, logout } = useAuth();
   const [selectedMonth, setSelectedMonth] = useState("June 2025");
 
   return (
     <div className="min-h-screen bg-gray-100">
+      <nav className="bg-white shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between h-16">
+            <div className="flex items-center">
+              <h1 className="text-xl font-semibold">Admin Dashboard</h1>
+            </div>
+            <div className="flex items-center">
+              <span className="text-gray-700 mr-4">
+                Welcome, {user?.username}
+              </span>
+              <button
+                onClick={logout}
+                className="bg-red-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-red-700"
+              >
+                Logout
+              </button>
+            </div>
+          </div>
+        </div>
+      </nav>
+
       {/* Header Controls */}
       <div className="max-w-7xl mx-auto mt-6 px-4 py-4 bg-white rounded-lg shadow flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div className="flex flex-col md:flex-row gap-4 md:items-center">
