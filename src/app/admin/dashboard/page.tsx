@@ -1,7 +1,7 @@
 "use client";
 
 import { useAuth } from "@/hooks/useAuth";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { StaffBarChart } from "@/components/ui/staff-bar-chart";
 import { StaffSelectionTrendsChart } from "@/components/ui/staff-selection-trends-chart";
 import { DissatisfactionPieChart } from "@/components/ui/dissatisfaction-pie-chart";
@@ -15,17 +15,6 @@ const months = [
   "May 2025",
   "June 2025",
 ];
-
-// Dummy data for selection trends
-const selectionTrends = [
-  { month: "Jan", Alice: 20, Bob: 15, Charlie: 10 },
-  { month: "Feb", Alice: 25, Bob: 18, Charlie: 12 },
-  { month: "Mar", Alice: 30, Bob: 20, Charlie: 15 },
-  { month: "Apr", Alice: 28, Bob: 22, Charlie: 18 },
-  { month: "May", Alice: 35, Bob: 25, Charlie: 20 },
-  { month: "Jun", Alice: 40, Bob: 30, Charlie: 22 },
-];
-const staffNames = ["Alice", "Bob", "Charlie"];
 
 // Add dummy data for dissatisfaction reports
 const dissatisfactionSummary = {
@@ -41,12 +30,47 @@ const dissatisfactionReasons = [
   { reason: "Pricing Issues", value: 3, trend: "stable" },
 ];
 
+// Define a type for selection trends data
+interface SelectionTrend {
+  month: string;
+  [staffName: string]: string | number;
+}
+
 export default function AdminDashboard() {
   const { user, logout } = useAuth();
   const [selectedMonth, setSelectedMonth] = useState("June 2025");
   const [staffSelections, setStaffSelections] = useState<StaffSelection[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+
+  // New state for selection trends
+  const [selectionTrends, setSelectionTrends] = useState<SelectionTrend[]>([]);
+  const [staffNames, setStaffNames] = useState<string[]>([]);
+  const [isTrendsLoading, setIsTrendsLoading] = useState<boolean>(false);
+  const [trendsError, setTrendsError] = useState<string | null>(null);
+
+  // Fetch selection trends
+  const fetchSelectionTrends = useCallback(async () => {
+    setIsTrendsLoading(true);
+    setTrendsError(null);
+    try {
+      const res = await fetch("/api/staff-selection-trends");
+      if (!res.ok) throw new Error("Failed to fetch selection trends");
+      const { data, staffNames } = await res.json();
+      setSelectionTrends(data);
+      setStaffNames(staffNames);
+    } catch {
+      setTrendsError("Could not load selection trends");
+      setSelectionTrends([]);
+      setStaffNames([]);
+    } finally {
+      setIsTrendsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchSelectionTrends();
+  }, [fetchSelectionTrends]);
 
   useEffect(() => {
     async function fetchStaffSelections() {
@@ -168,7 +192,13 @@ export default function AdminDashboard() {
         <div className="bg-white rounded-lg shadow p-6 flex flex-col">
           <div className="text-blue-700 font-semibold text-sm mb-2 cursor-pointer">Selection Trends Over Time (Last 6 Months)</div>
           <div className="bg-gray-200 rounded-lg flex items-center justify-center min-h-[260px] mb-2">
-            <StaffSelectionTrendsChart data={selectionTrends} staffNames={staffNames} />
+            {isTrendsLoading ? (
+              <div className="text-center py-8 text-gray-500">Loading...</div>
+            ) : trendsError ? (
+              <div className="text-center py-8 text-red-600">{trendsError}</div>
+            ) : (
+              <StaffSelectionTrendsChart data={selectionTrends} staffNames={staffNames} />
+            )}
           </div>
           <div className="text-xs text-gray-500 mt-1 text-center">
             Graphical representation of staff selection trends over the past few months.
