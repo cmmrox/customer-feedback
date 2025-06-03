@@ -39,21 +39,10 @@ CREATE TABLE `feedback` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `ratings` (
-    `id` VARCHAR(191) NOT NULL,
-    `name` VARCHAR(191) NOT NULL,
-    `icon` VARCHAR(191) NOT NULL,
-
-    UNIQUE INDEX `ratings_name_key`(`name`),
-    PRIMARY KEY (`id`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
--- CreateTable
 CREATE TABLE `feedback_staff` (
     `id` VARCHAR(191) NOT NULL,
     `feedbackId` VARCHAR(191) NOT NULL,
     `staffId` VARCHAR(191) NOT NULL,
-    `ratingId` VARCHAR(191) NOT NULL,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
 
     UNIQUE INDEX `feedback_staff_feedbackId_staffId_key`(`feedbackId`, `staffId`),
@@ -108,9 +97,6 @@ ALTER TABLE `feedback_staff` ADD CONSTRAINT `feedback_staff_feedbackId_fkey` FOR
 
 -- AddForeignKey
 ALTER TABLE `feedback_staff` ADD CONSTRAINT `feedback_staff_staffId_fkey` FOREIGN KEY (`staffId`) REFERENCES `staff`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE `feedback_staff` ADD CONSTRAINT `feedback_staff_ratingId_fkey` FOREIGN KEY (`ratingId`) REFERENCES `ratings`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `dissatisfaction_reasons` ADD CONSTRAINT `dissatisfaction_reasons_categoryId_fkey` FOREIGN KEY (`categoryId`) REFERENCES `categories`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
