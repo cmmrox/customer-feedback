@@ -6,6 +6,9 @@ import { StaffBarChart } from "@/components/ui/staff-bar-chart";
 import { StaffSelectionTrendsChart } from "@/components/ui/staff-selection-trends-chart";
 import { DissatisfactionPieChart } from "@/components/ui/dissatisfaction-pie-chart";
 import type { StaffSelection } from "@/lib/staff-selection";
+import * as XLSX from "xlsx";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 // Utility to get last 12 months including current month
 function getLast12Months(): string[] {
@@ -46,6 +49,10 @@ export default function AdminDashboard() {
   const [dissatisfactionPieData, setDissatisfactionPieData] = useState<{ reason: string; value: number }[]>([]);
   const [isDissatisfactionLoading, setIsDissatisfactionLoading] = useState<boolean>(false);
   const [dissatisfactionError, setDissatisfactionError] = useState<string | null>(null);
+
+  // Export states
+  const [isExportingExcel, setIsExportingExcel] = useState<boolean>(false);
+  const [isExportingPDF, setIsExportingPDF] = useState<boolean>(false);
 
   // Fetch selection trends
   const fetchSelectionTrends = useCallback(async () => {
@@ -115,6 +122,70 @@ export default function AdminDashboard() {
     fetchDissatisfactionSummary();
   }, [selectedMonth]);
 
+  /**
+   * Export staffSelections as Excel file
+   */
+  const handleExportExcel = async (): Promise<void> => {
+    setIsExportingExcel(true);
+    try {
+      if (!staffSelections.length) return;
+      // Prepare data for Excel
+      const worksheetData = staffSelections.map((staff) => ({
+        "Staff Name": staff.name,
+        "Times Selected": staff.count,
+      }));
+      const worksheet = XLSX.utils.json_to_sheet(worksheetData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Staff Selections");
+      const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+      // Create blob and trigger download
+      const blob = new Blob([excelBuffer], { type: "application/octet-stream" });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `staff-selections-${selectedMonth.replace(/\s/g, "-")}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error("Excel export failed:", err);
+      alert("Failed to export Excel file.");
+    } finally {
+      setIsExportingExcel(false);
+    }
+  };
+
+  /**
+   * Export staffSelections as PDF file
+   */
+  const handleExportPDF = async (): Promise<void> => {
+    setIsExportingPDF(true);
+    try {
+      if (!staffSelections.length) return;
+      const doc = new jsPDF();
+      doc.setFontSize(16);
+      doc.text(`Staff Selections - ${selectedMonth}`, 14, 18);
+      const tableData = staffSelections.map((staff) => [staff.name, staff.count]);
+      autoTable(doc, {
+        head: [["Staff Name", "Times Selected"]],
+        body: tableData,
+        startY: 26,
+        theme: "grid",
+        headStyles: { fillColor: [30, 64, 175] },
+        styles: { fontSize: 12 },
+      });
+      doc.save(`staff-selections-${selectedMonth.replace(/\s/g, "-")}.pdf`);
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error("PDF export failed:", err);
+      alert("Failed to export PDF file.");
+    } finally {
+      setIsExportingPDF(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-100">
       <nav className="bg-white shadow-sm">
@@ -156,11 +227,21 @@ export default function AdminDashboard() {
           </div>
         </div>
         <div className="flex gap-2 self-end md:self-auto">
-          <button className="bg-green-600 text-white px-5 py-2 rounded-md text-sm font-medium hover:bg-green-700 flex items-center gap-2">
-            <span className="material-icons text-base">file_download</span> Export Excel
+          <button
+            className="bg-green-600 text-white px-5 py-2 rounded-md text-sm font-medium hover:bg-green-700 flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+            onClick={handleExportExcel}
+            disabled={isExportingExcel || isLoading}
+          >
+            <span className="material-icons text-base">file_download</span>
+            {isExportingExcel ? "Exporting..." : "Export Excel"}
           </button>
-          <button className="bg-red-600 text-white px-5 py-2 rounded-md text-sm font-medium hover:bg-red-700 flex items-center gap-2">
-            <span className="material-icons text-base">picture_as_pdf</span> Export PDF
+          <button
+            className="bg-red-600 text-white px-5 py-2 rounded-md text-sm font-medium hover:bg-red-700 flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+            onClick={handleExportPDF}
+            disabled={isExportingPDF || isLoading}
+          >
+            <span className="material-icons text-base">picture_as_pdf</span>
+            {isExportingPDF ? "Exporting..." : "Export PDF"}
           </button>
         </div>
       </div>
