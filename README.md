@@ -1,73 +1,63 @@
 # Customer Satisfaction Feedback System
 
-This project is a web-based Customer Satisfaction Feedback System built with Next.js, TypeScript, and Tailwind CSS.
-
-## Project Setup & Architecture
-
-- **Framework:** Next.js (App Router)
-- **Language:** TypeScript
-- **Styling:** Tailwind CSS
-- **Linting:** ESLint
-- **Directory Structure:**
-  - `/src/app` - Application routes and pages
-  - `/public` - Static assets
-  - `/src/components` - (To be created) Reusable UI components
-  - `/src/styles` - (To be created) Custom styles
-  - `/src/utils` - (To be created) Utility functions
-
-## Getting Started
-
-```bash
-npm install
-npm run dev
-```
-
-## Next Steps
-- Configure Prettier
-- Set up environment variables
-- Create component library and design system
-- Set up state management
-- Establish API structure
-- Configure authentication (NextAuth.js)
-- Add Docker configuration
+A modern web-based platform for collecting and analyzing customer satisfaction feedback in retail environments. Built with Next.js, TypeScript, Prisma, and Tailwind CSS.
 
 ---
 
-For more details, see the [Development Task List](../Development%20Task%20List_%20Customer%20Satisfaction%20Feedb.md) and [Product Requirements Document](../Product%20Requirements%20Document_%20Customer%20Satisfacti.md).
+## Features
 
-## Docker Deployment
+- **Customer Feedback Portal**: Simple, touch-optimized interface for customers to rate their experience and select staff.
+- **Admin Portal**: Secure management of staff, dissatisfaction reasons, and system configuration.
+- **Analytics & Reporting**: Visual dashboards for staff selection trends and dissatisfaction analysis.
+- **Session Timeout**: Automatic reset for kiosk use.
+- **Authentication**: NextAuth.js-based admin login and session management.
+- **Dockerized Deployment**: Production-ready with MySQL and Nginx support.
 
-### Prerequisites
+---
 
-- Docker and Docker Compose installed on your server
-- Domain name for your application
-- SSL certificates for your domain
+## Architecture & Tech Stack
 
-### Setup Instructions
+- **Frontend & Backend**: Next.js (App Router, SSR)
+- **Language**: TypeScript (strict mode)
+- **Database**: MySQL (via Prisma ORM)
+- **Authentication**: NextAuth.js
+- **Styling**: Tailwind CSS
+- **Containerization**: Docker & Docker Compose
+- **State Management**: React Context API
+- **Testing**: (Planned) Unit and component tests
 
-1. Clone the repository to your production server:
+---
 
-```bash
-git clone [repository-url]
-cd customer-feedback
+## Directory Structure
+
+```
+src/
+├── app/                 # App Router pages and layouts (customer & admin portals)
+│   ├── api/             # API routes
+│   ├── admin/           # Admin portal (login, dashboard, error)
+│   ├── rate-staff/      # Staff selection flow
+│   ├── dissatisfaction-reasons/ # Dissatisfaction flow
+│   └── thank-you/       # Thank you page
+├── components/          # Reusable UI components
+│   └── ui/              # Base UI (charts, shimmer, etc.)
+├── lib/                 # Utility functions and configurations
+│   ├── db.ts            # Prisma client
+│   ├── auth.ts          # Auth logic
+│   └── staff-selection.ts # Staff selection logic
+├── server/              # Server-side code (tRPC, etc.)
+├── types/               # TypeScript type definitions
+├── hooks/               # Custom React hooks
+├── utils/               # Helper functions
+├── styles/              # Custom styles
 ```
 
-2. Create necessary directories for Nginx:
+---
 
-```bash
-mkdir -p nginx/conf nginx/ssl nginx/www
+## Environment Variables
+
+Create a `.env` or `.env.production` file in the project root with the following variables:
+
 ```
-
-3. Copy your SSL certificates to the nginx/ssl directory:
-
-```bash
-cp /path/to/your/certificate.pem nginx/ssl/cert.pem
-cp /path/to/your/key.pem nginx/ssl/key.pem
-```
-
-4. Configure your production environment by creating a `.env.production` file:
-
-```bash
 # Database
 DATABASE_URL=mysql://user:password@db:3306/customer_feedback
 
@@ -81,61 +71,151 @@ UPLOAD_DIR=/app/uploads
 # App settings
 SESSION_TIMEOUT=10000
 
-# MySQL Root Password (for docker-compose)
+# MySQL (for docker-compose-database.yml)
+MYSQL_DATABASE=customer_feedback
+MYSQL_USER=user
+MYSQL_PASSWORD=password
 MYSQL_ROOT_PASSWORD=secure-root-password
 ```
 
-5. Update the Nginx configuration in `nginx/conf/app.conf` with your domain name.
+---
 
-6. Build and start the application:
-
-```bash
-docker-compose -f docker-compose.prod.yml build
-docker-compose -f docker-compose.prod.yml up -d
-```
-
-7. Initialize the database (first time only):
+## Getting Started (Development)
 
 ```bash
-docker-compose -f docker-compose.prod.yml exec app npx prisma migrate deploy
-docker-compose -f docker-compose.prod.yml exec app npx prisma db seed
+npm install
+npm run dev
 ```
 
-### Maintenance Commands
+- App runs at http://localhost:3000
+- Requires a running MySQL instance (see Docker setup below)
 
-- View logs:
-  ```bash
-  docker-compose -f docker-compose.prod.yml logs -f
-  ```
+---
 
-- Restart services:
-  ```bash
-  docker-compose -f docker-compose.prod.yml restart
-  ```
+## Docker Deployment
 
-- Update the application:
-  ```bash
-  git pull
-  docker-compose -f docker-compose.prod.yml build app
-  docker-compose -f docker-compose.prod.yml up -d
-  ```
+### Prerequisites
+- Docker & Docker Compose
+- (Optional) Domain name & SSL certificates for production
 
-### Backup and Restore
+### Setup
 
-- Backup the database:
-  ```bash
-  docker-compose -f docker-compose.prod.yml exec db mysqldump -u root -p customer_feedback > backup_$(date +%Y%m%d).sql
-  ```
+1. **Clone the repository:**
+   ```bash
+   git clone [repository-url]
+   cd customer-feedback
+   ```
+2. **Configure environment:**
+   - Copy and edit `.env.production` as above.
+3. **Start services:**
+   ```bash
+   docker-compose -f docker-compose-database.yml up -d
+   docker-compose -f docker-compose-app.yml up -d
+   ```
+4. **Initialize the database:**
+   ```bash
+   docker-compose -f docker-compose-app.yml exec app npx prisma migrate deploy
+   docker-compose -f docker-compose-app.yml exec app npx prisma db seed
+   ```
 
-- Restore the database:
-  ```bash
-  docker-compose -f docker-compose.prod.yml exec -T db mysql -u root -p customer_feedback < backup_file.sql
-  ```
+### Maintenance
+- View logs: `docker-compose -f docker-compose-app.yml logs -f`
+- Restart: `docker-compose -f docker-compose-app.yml restart`
+- Update: `git pull && docker-compose -f docker-compose-app.yml build app && docker-compose -f docker-compose-app.yml up -d`
+- Backup DB: `docker-compose -f docker-compose-database.yml exec db mysqldump -u root -p customer_feedback > backup_$(date +%Y%m%d).sql`
+- Restore DB: `docker-compose -f docker-compose-database.yml exec -T db mysql -u root -p customer_feedback < backup_file.sql`
 
-## Security Considerations
+---
 
-- Always use strong passwords in production
-- Regularly update Docker images for security patches
-- Set up automatic backups for your database
-- Monitor application logs for suspicious activity
-- Use a firewall to restrict access to the server
+## Database Schema (ERD)
+
+> See [`ERD.md`](ERD.md) for full details.
+
+```mermaid
+erDiagram
+    User {
+        string id PK
+        string username
+        string password
+        string email
+        string role
+        bool isActive
+        datetime createdAt
+        datetime updatedAt
+    }
+    Staff {
+        string id PK
+        string name
+        string imageUrl
+        string position
+        string contactInfo
+        bool status
+        datetime createdAt
+        datetime updatedAt
+    }
+    Feedback {
+        string id PK
+        datetime timestamp
+        string overallRating
+        string comments
+    }
+    Category {
+        string id PK
+        string name
+        string description
+    }
+    DissatisfactionReason {
+        string id PK
+        string description
+        bool active
+        string categoryId FK
+    }
+    FeedbackStaff {
+        string id PK
+        string feedbackId FK
+        string staffId FK
+        datetime createdAt
+    }
+    FeedbackReason {
+        string id PK
+        string feedbackId FK
+        string reasonId FK
+        datetime createdAt
+    }
+    SystemConfig {
+        string id PK
+        string key
+        string value
+        datetime createdAt
+        datetime updatedAt
+    }
+    Feedback ||--o{ FeedbackStaff : "has staff selections"
+    Staff ||--o{ FeedbackStaff : "selected in"
+    Feedback ||--o{ FeedbackReason : "has reasons"
+    DissatisfactionReason ||--o{ FeedbackReason : "associated with"
+    Category ||--o{ DissatisfactionReason : "categorizes"
+```
+
+---
+
+## Security & Best Practices
+
+- Use strong, unique passwords for all secrets and DB users
+- Regularly update Docker images and dependencies
+- Validate all user input (Zod schemas)
+- Use HTTPS in production
+- Monitor logs and set up automated DB backups
+- Never commit `.env` files or secrets to version control
+
+---
+
+## References & Documentation
+
+- [Product Requirements Document (PRD.md)](PRD.md)
+- [Entity-Relationship Diagram (ERD.md)](ERD.md)
+- [Prisma Schema](prisma/schema.prisma)
+- [Database Setup Guide](DATABASE_SETUP.md)
+
+---
+
+For questions or contributions, please open an issue or pull request.
