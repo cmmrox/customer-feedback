@@ -7,28 +7,20 @@ import { StaffSelectionTrendsChart } from "@/components/ui/staff-selection-trend
 import { DissatisfactionPieChart } from "@/components/ui/dissatisfaction-pie-chart";
 import type { StaffSelection } from "@/lib/staff-selection";
 
-const months = [
-  "January 2025",
-  "February 2025",
-  "March 2025",
-  "April 2025",
-  "May 2025",
-  "June 2025",
-];
+// Utility to get last 12 months including current month
+function getLast12Months(): string[] {
+  const months: string[] = [];
+  const now = new Date();
+  for (let i = 0; i < 12; i++) {
+    const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const month = date.toLocaleString('default', { month: 'long' });
+    const year = date.getFullYear();
+    months.push(`${month} ${year}`);
+  }
+  return months.reverse(); // So oldest is first, latest is last (like your original array)
+}
 
-// Add dummy data for dissatisfaction reports
-const dissatisfactionSummary = {
-  month: "June 2025",
-  count: 35,
-};
-
-const dissatisfactionReasons = [
-  { reason: "Long Wait Times", value: 12, trend: "decreased" },
-  { reason: "Product Availability", value: 8, trend: "increased" },
-  { reason: "Staff Unhelpfulness", value: 7, trend: "stable" },
-  { reason: "Store Cleanliness", value: 5, trend: "decreased" },
-  { reason: "Pricing Issues", value: 3, trend: "stable" },
-];
+const months = getLast12Months();
 
 // Define a type for selection trends data
 interface SelectionTrend {
@@ -48,6 +40,12 @@ export default function AdminDashboard() {
   const [staffNames, setStaffNames] = useState<string[]>([]);
   const [isTrendsLoading, setIsTrendsLoading] = useState<boolean>(false);
   const [trendsError, setTrendsError] = useState<string | null>(null);
+
+  // Dissatisfaction summary state
+  const [dissatisfactionCount, setDissatisfactionCount] = useState<number>(0);
+  const [dissatisfactionPieData, setDissatisfactionPieData] = useState<{ reason: string; value: number }[]>([]);
+  const [isDissatisfactionLoading, setIsDissatisfactionLoading] = useState<boolean>(false);
+  const [dissatisfactionError, setDissatisfactionError] = useState<string | null>(null);
 
   // Fetch selection trends
   const fetchSelectionTrends = useCallback(async () => {
@@ -91,6 +89,30 @@ export default function AdminDashboard() {
       }
     }
     fetchStaffSelections();
+  }, [selectedMonth]);
+
+  // Fetch dissatisfaction summary and pie data
+  useEffect(() => {
+    async function fetchDissatisfactionSummary() {
+      setIsDissatisfactionLoading(true);
+      setDissatisfactionError(null);
+      try {
+        const res = await fetch(`/api/dissatisfaction-summary?month=${encodeURIComponent(selectedMonth)}`);
+        if (!res.ok) throw new Error("Failed to fetch dissatisfaction summary");
+        const { count, pieData } = await res.json();
+        setDissatisfactionCount(count);
+        setDissatisfactionPieData(pieData);
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.error(err);
+        setDissatisfactionError("Could not load dissatisfaction summary");
+        setDissatisfactionCount(0);
+        setDissatisfactionPieData([]);
+      } finally {
+        setIsDissatisfactionLoading(false);
+      }
+    }
+    fetchDissatisfactionSummary();
   }, [selectedMonth]);
 
   return (
@@ -214,9 +236,15 @@ export default function AdminDashboard() {
           <div className="bg-white rounded-lg shadow p-6 flex flex-1 min-h-[260px] items-center justify-center">
             <div className="flex flex-col items-center justify-center w-full h-full">
               <div className="text-md font-semibold text-red-700 mb-2 text-center">Monthly &quot;Not Satisfied&quot; Count</div>
-              <div className="text-6xl font-extrabold text-red-600 mb-2 text-center">{dissatisfactionSummary.count}</div>
+              {isDissatisfactionLoading ? (
+                <div className="text-center py-8 text-gray-500">Loading...</div>
+              ) : dissatisfactionError ? (
+                <div className="text-center py-8 text-red-600">{dissatisfactionError}</div>
+              ) : (
+                <div className="text-6xl font-extrabold text-red-600 mb-2 text-center">{dissatisfactionCount}</div>
+              )}
               <div className="text-xs text-gray-500 text-center">
-                Total &quot;Not Satisfied&quot; feedback received in {dissatisfactionSummary.month}.
+                Total &quot;Not Satisfied&quot; feedback received in {selectedMonth}.
               </div>
             </div>
           </div>
@@ -224,7 +252,13 @@ export default function AdminDashboard() {
           <div className="bg-white rounded-lg shadow p-6 flex flex-col items-center flex-1 min-h-[260px]">
             <div className="text-md font-semibold text-red-700 mb-2">Dissatisfaction by Reason</div>
             <div className="flex-1 flex items-center justify-center w-full bg-gray-100 rounded-lg h-64">
-              <DissatisfactionPieChart data={dissatisfactionReasons} />
+              {isDissatisfactionLoading ? (
+                <div className="text-center py-8 text-gray-500">Loading...</div>
+              ) : dissatisfactionError ? (
+                <div className="text-center py-8 text-red-600">{dissatisfactionError}</div>
+              ) : (
+                <DissatisfactionPieChart data={dissatisfactionPieData} />
+              )}
             </div>
             <div className="text-xs text-gray-500 mt-2 text-center">
               Breakdown of &quot;Not Satisfied&quot; feedback by common reason categories.
@@ -243,29 +277,16 @@ export default function AdminDashboard() {
               </tr>
             </thead>
             <tbody>
-              {dissatisfactionReasons.map((item, idx) => (
-                <tr key={item.reason} className={idx !== dissatisfactionReasons.length - 1 ? 'border-b' : ''}>
+              {dissatisfactionPieData.map((item: { reason: string; value: number }, idx: number) => (
+                <tr key={item.reason} className={idx !== dissatisfactionPieData.length - 1 ? 'border-b' : ''}>
                   <td className="px-4 py-3 text-gray-900 whitespace-nowrap font-medium">{item.reason}</td>
                   <td className="px-4 py-3 text-gray-900 whitespace-nowrap">{item.value}</td>
                   <td className="px-4 py-3 whitespace-nowrap">
-                    {item.trend === "decreased" && (
-                      <span className="text-green-600 flex items-center gap-1 font-medium">
-                        <span className="material-icons text-base align-middle">arrow_downward</span>
-                        <span>Decreased</span>
-                      </span>
-                    )}
-                    {item.trend === "increased" && (
-                      <span className="text-red-600 flex items-center gap-1 font-medium">
-                        <span className="material-icons text-base align-middle">arrow_upward</span>
-                        <span>Increased</span>
-                      </span>
-                    )}
-                    {item.trend === "stable" && (
-                      <span className="text-gray-600 flex items-center gap-1 font-medium">
-                        <span className="material-icons text-base align-middle">horizontal_rule</span>
-                        <span>Stable</span>
-                      </span>
-                    )}
+                    {/* No trend data available, so always show Stable */}
+                    <span className="text-gray-600 flex items-center gap-1 font-medium">
+                      <span className="material-icons text-base align-middle">horizontal_rule</span>
+                      <span>Stable</span>
+                    </span>
                   </td>
                 </tr>
               ))}
