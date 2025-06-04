@@ -1,6 +1,33 @@
+'use client';
+
 import Image from 'next/image';
+import { useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
+import React from 'react';
 
 export default function ThankYouPage() {
+
+  const router = useRouter();
+  const inactivityTimeout = useRef<NodeJS.Timeout | null>(null);
+
+
+  useEffect(() => {
+    const resetTimer = () => {
+      if (inactivityTimeout.current) clearTimeout(inactivityTimeout.current);
+      inactivityTimeout.current = setTimeout(() => {
+        router.push('/');
+      }, 5000);
+    };
+    const events = ['mousemove', 'mousedown', 'keydown', 'touchstart'];
+    events.forEach(event => window.addEventListener(event, resetTimer));
+    resetTimer();
+    return () => {
+      if (inactivityTimeout.current) clearTimeout(inactivityTimeout.current);
+      events.forEach(event => window.removeEventListener(event, resetTimer));
+    };
+  }, [router]);
+
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-[#FFB800]">
       <div className="flex flex-col items-center">

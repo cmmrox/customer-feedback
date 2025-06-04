@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { v4 as uuidv4 } from "uuid";
 import { Shimmer } from "@/components/ui/shimmer";
@@ -19,6 +19,7 @@ export default function DissatisfactionReasonsPage() {
   const [error, setError] = useState<string | null>(null);
   const [feedbackId] = useState<string>(() => uuidv4());
   const router = useRouter();
+  const inactivityTimeout = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const fetchReasons = async () => {
@@ -35,6 +36,22 @@ export default function DissatisfactionReasonsPage() {
     };
     fetchReasons();
   }, []);
+
+  useEffect(() => {
+    const resetTimer = () => {
+      if (inactivityTimeout.current) clearTimeout(inactivityTimeout.current);
+      inactivityTimeout.current = setTimeout(() => {
+        router.push('/');
+      }, 5000);
+    };
+    const events = ['mousemove', 'mousedown', 'keydown', 'touchstart'];
+    events.forEach(event => window.addEventListener(event, resetTimer));
+    resetTimer();
+    return () => {
+      if (inactivityTimeout.current) clearTimeout(inactivityTimeout.current);
+      events.forEach(event => window.removeEventListener(event, resetTimer));
+    };
+  }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

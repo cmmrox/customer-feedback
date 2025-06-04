@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { useRouter } from 'next/navigation';
 import React from 'react';
@@ -32,6 +32,7 @@ export default function RateStaffPage() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [submittingStaffId, setSubmittingStaffId] = useState<string | null>(null);
   const router = useRouter();
+  const inactivityTimeout = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -51,6 +52,23 @@ export default function RateStaffPage() {
 
     fetchData();
   }, []);
+
+  
+  useEffect(() => {
+    const resetTimer = () => {
+      if (inactivityTimeout.current) clearTimeout(inactivityTimeout.current);
+      inactivityTimeout.current = setTimeout(() => {
+        router.push('/');
+      }, 5000);
+    };
+    const events = ['mousemove', 'mousedown', 'keydown', 'touchstart'];
+    events.forEach(event => window.addEventListener(event, resetTimer));
+    resetTimer();
+    return () => {
+      if (inactivityTimeout.current) clearTimeout(inactivityTimeout.current);
+      events.forEach(event => window.removeEventListener(event, resetTimer));
+    };
+  }, [router]);
 
   const handleStaffSelect = async (staffId: string) => {
     if (submittingStaffId) return; // Prevent double submit
