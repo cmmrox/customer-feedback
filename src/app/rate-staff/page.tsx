@@ -13,6 +13,13 @@ interface StaffMember {
   position: string;
 }
 
+interface StaffCardProps {
+  staffMember: StaffMember;
+  isSelected: boolean;
+  isSubmitting: boolean;
+  onSubmit: (staffId: string) => void;
+}
+
 function StaffShimmer() {
   return (
     <div className="bg-white rounded-xl shadow-md p-6 flex items-center gap-4 w-full min-h-[110px] animate-pulse">
@@ -22,6 +29,54 @@ function StaffShimmer() {
         <div className="w-20 h-4 bg-gray-200 rounded" />
       </div>
     </div>
+  );
+}
+
+function StaffCard({ staffMember, isSelected, isSubmitting, onSubmit }: StaffCardProps) {
+  const [imageError, setImageError] = useState<boolean>(false);
+  const [imageSrc, setImageSrc] = useState<string>(staffMember.imageUrl);
+
+  const handleImageError = () => {
+    if (!imageError) {
+      setImageError(true);
+      setImageSrc('/images/staff/default-staff.svg');
+    }
+  };
+
+  const isThisCardSubmitting = isSubmitting && isSelected;
+
+  return (
+    <button
+      className={`bg-white rounded-xl shadow-md p-6 flex items-center gap-4 w-full transition-transform min-h-[110px] ${isSelected ? 'scale-105 ring-2 ring-yellow-500' : ''} ${isThisCardSubmitting ? 'opacity-60 cursor-not-allowed' : ''}`}
+      onClick={() => onSubmit(staffMember.id)}
+      disabled={isThisCardSubmitting}
+    >
+      <div className="w-20 h-20 relative flex-shrink-0">
+        <Image
+          src={imageSrc}
+          alt={staffMember.name}
+          fill
+          className="rounded-full object-cover border border-gray-200"
+          onError={handleImageError}
+          priority={false}
+        />
+        {isThisCardSubmitting && (
+          <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-70 rounded-full">
+            <svg className="animate-spin h-8 w-8 text-yellow-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+            </svg>
+          </div>
+        )}
+      </div>
+      <div className="flex flex-col items-start flex-grow">
+        <span className="font-bold text-lg mb-1">{staffMember.name}</span>
+        <span className="flex items-center text-sm text-gray-700">
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 mr-1 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 01-8 0M12 14v7m-7-7a7 7 0 0114 0v7H5v-7z" /></svg>
+          {staffMember.position || 'Cashier'}
+        </span>
+      </div>
+    </button>
   );
 }
 
@@ -103,36 +158,13 @@ export default function RateStaffPage() {
           {isLoading
             ? Array.from({ length: 6 }).map((_, idx) => <StaffShimmer key={idx} />)
             : staff.map((staffMember) => (
-                <button
+                <StaffCard
                   key={staffMember.id}
-                  className={`bg-white rounded-xl shadow-md p-6 flex items-center gap-4 w-full transition-transform min-h-[110px] ${selectedStaff === staffMember.id ? 'scale-105 ring-2 ring-yellow-500' : ''} ${!!submittingStaffId ? 'opacity-60 cursor-not-allowed' : ''}`}
-                  onClick={() => handleStaffSelect(staffMember.id)}
-                  disabled={!!submittingStaffId}
-                >
-                  <div className="w-20 h-20 relative flex-shrink-0">
-                    <Image
-                      src={staffMember.imageUrl || '/placeholder-staff.png'}
-                      alt={staffMember.name}
-                      fill
-                      className="rounded-full object-cover border border-gray-200"
-                    />
-                    {submittingStaffId === staffMember.id && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-70 rounded-full">
-                        <svg className="animate-spin h-8 w-8 text-yellow-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
-                        </svg>
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex flex-col items-start flex-grow">
-                    <span className="font-bold text-lg mb-1">{staffMember.name}</span>
-                    <span className="flex items-center text-sm text-gray-700">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 mr-1 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 01-8 0M12 14v7m-7-7a7 7 0 0114 0v7H5v-7z" /></svg>
-                      {staffMember.position || 'Cashier'}
-                    </span>
-                  </div>
-                </button>
+                  staffMember={staffMember}
+                  isSelected={selectedStaff === staffMember.id}
+                  isSubmitting={!!submittingStaffId}
+                  onSubmit={handleStaffSelect}
+                />
               ))}
         </div>
       </div>

@@ -32,7 +32,7 @@ export async function getStaffSelectionsByMonth(monthString: string): Promise<St
     },
     select: { id: true },
   });
-  const feedbackIds = feedbacks.map(f => f.id);
+  const feedbackIds = feedbacks.map((f: { id: string }) => f.id);
   if (feedbackIds.length === 0) return [];
 
   // Group FeedbackStaff by staffId for those feedbacks
@@ -45,16 +45,16 @@ export async function getStaffSelectionsByMonth(monthString: string): Promise<St
   });
 
   // Get staff names
-  const staffIds: string[] = results.map(r => r.staffId);
+  const staffIds: string[] = results.map((r: { staffId: string }) => r.staffId);
   const staffList = await prisma.staff.findMany({
     where: { id: { in: staffIds } },
     select: { id: true, name: true },
   });
 
   // Map results to include staff name
-  return results.map(r => ({
+  return results.map((r: { staffId: string; _count: { staffId: number } }) => ({
     id: r.staffId,
-    name: staffList.find(s => s.id === r.staffId)?.name ?? 'Unknown',
+    name: staffList.find((s: { id: string; name: string }) => s.id === r.staffId)?.name ?? 'Unknown',
     count: r._count.staffId,
   }));
 } 

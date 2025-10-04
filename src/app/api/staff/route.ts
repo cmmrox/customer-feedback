@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
+import { getStaffImageUrl } from '@/lib/image-utils';
 
 const prisma = new PrismaClient();
 
@@ -20,7 +21,13 @@ export async function GET() {
       }
     });
 
-    return NextResponse.json(staff);
+    // Process staff data to ensure valid image URLs
+    const processedStaff = staff.map(member => ({
+      ...member,
+      imageUrl: getStaffImageUrl(member.imageUrl)
+    }));
+
+    return NextResponse.json(processedStaff);
   } catch (error) {
     console.error('Error fetching staff:', error);
     return NextResponse.json(

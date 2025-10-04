@@ -32,10 +32,10 @@ export async function GET() {
         },
         select: { id: true },
       });
-      const feedbackIds = feedbacks.map((f) => f.id);
+      const feedbackIds = feedbacks.map((f: { id: string }) => f.id);
       // Count selections per staff
       const counts: Record<string, number> = {};
-      staff.forEach((s) => (counts[s.name] = 0));
+      staff.forEach((s: { name: string }) => (counts[s.name] = 0));
       if (feedbackIds.length > 0) {
         const feedbackStaff = await prisma.feedbackStaff.findMany({
           where: {
@@ -43,8 +43,8 @@ export async function GET() {
           },
           select: { staffId: true },
         });
-        feedbackStaff.forEach((fs) => {
-          const staffName = staff.find((s) => s.id === fs.staffId)?.name;
+        feedbackStaff.forEach((fs: { staffId: string }) => {
+          const staffName = staff.find((s: { id: string; name: string }) => s.id === fs.staffId)?.name;
           if (staffName) counts[staffName]++;
         });
       }
@@ -56,7 +56,7 @@ export async function GET() {
   );
 
   // Also return staff names for chart legend
-  const staffNames = staff.map((s) => s.name);
+  const staffNames = staff.map((s: { name: string }) => s.name);
 
   return NextResponse.json({ data, staffNames });
 } 

@@ -6,9 +6,17 @@ import { StaffBarChart } from "@/components/ui/staff-bar-chart";
 import { StaffSelectionTrendsChart } from "@/components/ui/staff-selection-trends-chart";
 import { DissatisfactionPieChart } from "@/components/ui/dissatisfaction-pie-chart";
 import type { StaffSelection } from "@/lib/staff-selection";
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+
+// Utility to get current month in the required format
+function getCurrentMonth(): string {
+  const now = new Date();
+  const month = now.toLocaleString('default', { month: 'long' });
+  const year = now.getFullYear();
+  return `${month} ${year}`;
+}
 
 // Utility to get last 12 months including current month
 function getLast12Months(): string[] {
@@ -33,7 +41,7 @@ interface SelectionTrend {
 
 export default function AdminDashboard() {
   const { user, logout } = useAuth();
-  const [selectedMonth, setSelectedMonth] = useState("June 2025");
+  const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth());
   const [staffSelections, setStaffSelections] = useState<StaffSelection[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -129,17 +137,40 @@ export default function AdminDashboard() {
     setIsExportingExcel(true);
     try {
       if (!staffSelections.length) return;
-      // Prepare data for Excel
-      const worksheetData = staffSelections.map((staff) => ({
-        "Staff Name": staff.name,
-        "Times Selected": staff.count,
-      }));
-      const worksheet = XLSX.utils.json_to_sheet(worksheetData);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Staff Selections");
-      const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+      
+      // Create a new workbook and worksheet
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet("Staff Selections");
+      
+      // Add headers
+      worksheet.columns = [
+        { header: "Staff Name", key: "name", width: 20 },
+        { header: "Times Selected", key: "count", width: 15 }
+      ];
+      
+      // Add data
+      staffSelections.forEach((staff) => {
+        worksheet.addRow({
+          name: staff.name,
+          count: staff.count
+        });
+      });
+      
+      // Style the header row
+      worksheet.getRow(1).font = { bold: true };
+      worksheet.getRow(1).fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFE0E0E0' }
+      };
+      
+      // Generate the Excel file
+      const buffer = await workbook.xlsx.writeBuffer();
+      
       // Create blob and trigger download
-      const blob = new Blob([excelBuffer], { type: "application/octet-stream" });
+      const blob = new Blob([buffer], { 
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" 
+      });
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;

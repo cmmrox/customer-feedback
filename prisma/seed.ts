@@ -33,26 +33,90 @@ async function main() {
   const staff = await Promise.all([
     prisma.staff.create({
       data: {
-        name: 'John Smith',
-        position: 'Sales Associate',
-        imageUrl: '/images/staff/john-smith.jpg',
-        contactInfo: 'john.smith@example.com',
+        name: 'A G Gihan Samudrani',
+        position: 'Customer Service Specialist',
+        imageUrl: '/images/staff/gihan-samudrani.jpg',
+        contactInfo: 'gihan.samudrani@example.com',
       },
     }),
     prisma.staff.create({
       data: {
-        name: 'Sarah Johnson',
-        position: 'Customer Service Representative',
-        imageUrl: '/images/staff/sarah-johnson.jpg',
-        contactInfo: 'sarah.johnson@example.com',
+        name: 'Devendra Kbilan',
+        position: 'Sales Representative',
+        imageUrl: '/images/staff/devendra-kbilan.jpg',
+        contactInfo: 'devendra.kbilan@example.com',
       },
     }),
     prisma.staff.create({
       data: {
-        name: 'Michael Brown',
-        position: 'Store Manager',
-        imageUrl: '/images/staff/michael-brown.jpg',
-        contactInfo: 'michael.brown@example.com',
+        name: 'V Krishan',
+        position: 'Store Associate',
+        imageUrl: '/images/staff/v-krishan.jpg',
+        contactInfo: 'v.krishan@example.com',
+      },
+    }),
+    prisma.staff.create({
+      data: {
+        name: 'S Dulisha',
+        position: 'Customer Support Agent',
+        imageUrl: '/images/staff/s-dulisha.jpg',
+        contactInfo: 's.dulisha@example.com',
+      },
+    }),
+    prisma.staff.create({
+      data: {
+        name: 'M Dilakshika',
+        position: 'Retail Assistant',
+        imageUrl: '/images/staff/m-dilakshika.jpg',
+        contactInfo: 'm.dilakshika@example.com',
+      },
+    }),
+    prisma.staff.create({
+      data: {
+        name: 'M devika',
+        position: 'Sales Coordinator',
+        imageUrl: '/images/staff/m-devika.jpg',
+        contactInfo: 'm.devika@example.com',
+      },
+    }),
+    prisma.staff.create({
+      data: {
+        name: 'Pathmini Susantha Munasinghe',
+        position: 'Customer Relations Manager',
+        imageUrl: '/images/staff/pathmini-munasinghe.jpg',
+        contactInfo: 'pathmini.munasinghe@example.com',
+      },
+    }),
+    prisma.staff.create({
+      data: {
+        name: 'Rajamini',
+        position: 'Service Desk Representative',
+        imageUrl: '/images/staff/rajamini.jpg',
+        contactInfo: 'rajamini@example.com',
+      },
+    }),
+    prisma.staff.create({
+      data: {
+        name: 'C Swetha Gimhani Gonseka',
+        position: 'Customer Experience Specialist',
+        imageUrl: '/images/staff/swetha-gonseka.jpg',
+        contactInfo: 'swetha.gonseka@example.com',
+      },
+    }),
+    prisma.staff.create({
+      data: {
+        name: 'Hansi Sadamini Bagya',
+        position: 'Client Services Representative',
+        imageUrl: '/images/staff/hansi-bagya.jpg',
+        contactInfo: 'hansi.bagya@example.com',
+      },
+    }),
+    prisma.staff.create({
+      data: {
+        name: 'Prasanna Weelu Kumara',
+        position: 'Customer Support Specialist',
+        imageUrl: '/images/staff/prasanna-kumara.jpg',
+        contactInfo: 'prasanna.kumara@example.com',
       },
     }),
   ]);
@@ -119,50 +183,6 @@ async function main() {
 
   console.log(`Created ${reasons.length} dissatisfaction reasons`);
 
-  // Create positive feedback with staff selection (no rating)
-  const positiveFeedback1 = await prisma.feedback.create({
-    data: {
-      overallRating: 'GOOD',
-      comments: 'Great service!',
-    },
-  });
-
-  await prisma.feedbackStaff.create({
-    data: {
-      feedbackId: positiveFeedback1.id,
-      staffId: staff[0].id,
-    },
-  });
-
-  // Another positive feedback
-  const positiveFeedback2 = await prisma.feedback.create({
-    data: {
-      overallRating: 'GOOD',
-      comments: 'Very helpful staff',
-    },
-  });
-
-  await prisma.feedbackStaff.create({
-    data: {
-      feedbackId: positiveFeedback2.id,
-      staffId: staff[1].id,
-    },
-  });
-
-  // Create negative feedback with dissatisfaction reasons
-  const negativeFeedback1 = await prisma.feedback.create({
-    data: {
-      overallRating: 'NOT_SATISFIED',
-      comments: 'Service was too slow',
-    },
-  });
-
-  await prisma.feedbackReason.create({
-    data: {
-      feedbackId: negativeFeedback1.id,
-      reasonId: reasons[0].id,
-    },
-  });
 
   // System configurations
   const configs = await Promise.all([

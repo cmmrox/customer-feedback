@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
     select: { id: true },
   });
 
-  const feedbackIds = feedbacks.map(f => f.id);
+  const feedbackIds = feedbacks.map((f: { id: string }) => f.id);
 
   let pieData: { reason: string; value: number }[] = [];
   if (feedbackIds.length > 0) {
@@ -48,11 +48,11 @@ export async function GET(req: NextRequest) {
 
     // Get reason descriptions
     const reasonDetails = await prisma.dissatisfactionReason.findMany({
-      where: { id: { in: reasons.map(r => r.reasonId) } },
+      where: { id: { in: reasons.map((r: { reasonId: string }) => r.reasonId) } },
       select: { id: true, description: true },
     });
-    const reasonMap = Object.fromEntries(reasonDetails.map(r => [r.id, r.description]));
-    pieData = reasons.map(r => ({
+    const reasonMap = Object.fromEntries(reasonDetails.map((r: { id: string; description: string }) => [r.id, r.description]));
+    pieData = reasons.map((r: { reasonId: string; _count: number }) => ({
       reason: reasonMap[r.reasonId] || 'Unknown',
       value: r._count,
     }));
