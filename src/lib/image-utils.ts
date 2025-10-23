@@ -12,15 +12,8 @@ export function getStaffImageUrl(imageUrl: string | null): string {
     return '/images/staff/default-staff.svg';
   }
 
-  // If the image URL is already a default image, return it
-  if (imageUrl.includes('default-staff')) {
-    return imageUrl;
-  }
-
-  // For now, we'll use the default image for all staff
-  // In a production environment, you might want to implement
-  // actual file existence checking on the server side
-  return '/images/staff/default-staff.svg';
+  // Return the actual image URL from the database
+  return imageUrl;
 }
 
 /**

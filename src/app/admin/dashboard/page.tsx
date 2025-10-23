@@ -58,6 +58,16 @@ export default function AdminDashboard() {
   const [isDissatisfactionLoading, setIsDissatisfactionLoading] = useState<boolean>(false);
   const [dissatisfactionError, setDissatisfactionError] = useState<string | null>(null);
 
+  // Trend data state
+  interface TrendData {
+    reason: string;
+    currentCount: number;
+    previousCount: number;
+    trend: 'increasing' | 'decreasing' | 'stable';
+    change: number;
+  }
+  const [trendData, setTrendData] = useState<TrendData[]>([]);
+
   // Export states
   const [isExportingExcel, setIsExportingExcel] = useState<boolean>(false);
   const [isExportingPDF, setIsExportingPDF] = useState<boolean>(false);
@@ -106,28 +116,35 @@ export default function AdminDashboard() {
     fetchStaffSelections();
   }, [selectedMonth]);
 
-  // Fetch dissatisfaction summary and pie data
+  // Fetch dissatisfaction summary and trend comparison data
   useEffect(() => {
-    async function fetchDissatisfactionSummary() {
+    async function fetchDissatisfactionData() {
       setIsDissatisfactionLoading(true);
       setDissatisfactionError(null);
       try {
-        const res = await fetch(`/api/dissatisfaction-summary?month=${encodeURIComponent(selectedMonth)}`);
-        if (!res.ok) throw new Error("Failed to fetch dissatisfaction summary");
-        const { count, pieData } = await res.json();
-        setDissatisfactionCount(count);
-        setDissatisfactionPieData(pieData);
+        // Fetch comparison data with trends
+        const res = await fetch(`/api/dissatisfaction-comparison?month=${encodeURIComponent(selectedMonth)}`);
+        if (!res.ok) throw new Error("Failed to fetch dissatisfaction data");
+        const { currentMonth, trends } = await res.json();
+
+        // Calculate total count
+        const totalCount = currentMonth.reduce((sum: number, item: { value: number }) => sum + item.value, 0);
+
+        setDissatisfactionCount(totalCount);
+        setDissatisfactionPieData(currentMonth);
+        setTrendData(trends);
       } catch (err) {
         // eslint-disable-next-line no-console
         console.error(err);
-        setDissatisfactionError("Could not load dissatisfaction summary");
+        setDissatisfactionError("Could not load dissatisfaction data");
         setDissatisfactionCount(0);
         setDissatisfactionPieData([]);
+        setTrendData([]);
       } finally {
         setIsDissatisfactionLoading(false);
       }
     }
-    fetchDissatisfactionSummary();
+    fetchDissatisfactionData();
   }, [selectedMonth]);
 
   /**
@@ -380,30 +397,58 @@ export default function AdminDashboard() {
         {/* Recurring Issues Analysis */}
         <div className="bg-white rounded-xl shadow-md p-6 mt-2">
           <div className="text-lg font-semibold text-red-600 mb-4">Recurring Issues Analysis</div>
-          <table className="min-w-full text-sm border-separate border-spacing-0">
-            <thead>
-              <tr className="bg-gray-50">
-                <th className="px-4 py-2 text-left text-gray-700 font-semibold tracking-wide text-xs">ISSUE/REASON CATEGORY</th>
-                <th className="px-4 py-2 text-left text-gray-700 font-semibold tracking-wide text-xs">FREQUENCY (THIS MONTH)</th>
-                <th className="px-4 py-2 text-left text-gray-700 font-semibold tracking-wide text-xs">TREND (VS. LAST MONTH)</th>
-              </tr>
-            </thead>
-            <tbody>
-              {dissatisfactionPieData.map((item: { reason: string; value: number }, idx: number) => (
-                <tr key={item.reason} className={idx !== dissatisfactionPieData.length - 1 ? 'border-b' : ''}>
-                  <td className="px-4 py-3 text-gray-900 whitespace-nowrap font-medium">{item.reason}</td>
-                  <td className="px-4 py-3 text-gray-900 whitespace-nowrap">{item.value}</td>
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    {/* No trend data available, so always show Stable */}
-                    <span className="text-gray-600 flex items-center gap-1 font-medium">
-                      <span className="material-icons text-base align-middle">horizontal_rule</span>
-                      <span>Stable</span>
-                    </span>
-                  </td>
+          {isDissatisfactionLoading ? (
+            <div className="text-center py-8 text-gray-500">Loading...</div>
+          ) : dissatisfactionError ? (
+            <div className="text-center py-8 text-red-600">{dissatisfactionError}</div>
+          ) : trendData.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">No data available for this month.</div>
+          ) : (
+            <table className="min-w-full text-sm border-separate border-spacing-0">
+              <thead>
+                <tr className="bg-gray-50">
+                  <th className="px-4 py-2 text-left text-gray-700 font-semibold tracking-wide text-xs">ISSUE/REASON CATEGORY</th>
+                  <th className="px-4 py-2 text-left text-gray-700 font-semibold tracking-wide text-xs">FREQUENCY (THIS MONTH)</th>
+                  <th className="px-4 py-2 text-left text-gray-700 font-semibold tracking-wide text-xs">TREND (VS. LAST MONTH)</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {trendData.map((item: TrendData, idx: number) => {
+                  // Determine trend display
+                  let trendIcon: string;
+                  let trendText: string;
+                  let trendColor: string;
+
+                  if (item.trend === 'increasing') {
+                    trendIcon = 'arrow_upward';
+                    trendText = `Increasing (+${item.change})`;
+                    trendColor = 'text-red-600';
+                  } else if (item.trend === 'decreasing') {
+                    trendIcon = 'arrow_downward';
+                    trendText = `Decreasing (${item.change})`;
+                    trendColor = 'text-green-600';
+                  } else {
+                    trendIcon = 'horizontal_rule';
+                    trendText = 'Stable';
+                    trendColor = 'text-gray-600';
+                  }
+
+                  return (
+                    <tr key={item.reason} className={idx !== trendData.length - 1 ? 'border-b' : ''}>
+                      <td className="px-4 py-3 text-gray-900 whitespace-nowrap font-medium">{item.reason}</td>
+                      <td className="px-4 py-3 text-gray-900 whitespace-nowrap">{item.currentCount}</td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <span className={`${trendColor} flex items-center gap-1 font-medium`}>
+                          <span className="material-icons text-base align-middle">{trendIcon}</span>
+                          <span>{trendText}</span>
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
       {/* Footer */}
