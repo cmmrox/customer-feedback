@@ -54,7 +54,13 @@ npx prisma migrate dev --name init
 4. Seed the database with initial data:
 
 ```bash
-npx prisma db seed
+npm run prisma:seed
+```
+
+5. (Optional) Reset database completely (wipe all data, reapply migrations, and reseed):
+
+```bash
+npx prisma migrate reset
 ```
 
 ## Database Schema

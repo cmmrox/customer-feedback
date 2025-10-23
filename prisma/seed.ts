@@ -33,90 +33,58 @@ async function main() {
   const staff = await Promise.all([
     prisma.staff.create({
       data: {
-        name: 'A G Gihan Samudrani',
-        position: 'Customer Service Specialist',
-        imageUrl: '/images/staff/gihan-samudrani.jpg',
-        contactInfo: 'gihan.samudrani@example.com',
+        name: 'J.M. Hansi Sandamini Bhagya',
+        position: 'Chief Cashier',
+        imageUrl: '/images/staff/chief-cashier-j-m-hansi-sandamini-bhagya.webp',
+        contactInfo: 'hansi.bhagya@example.com',
       },
     }),
     prisma.staff.create({
       data: {
-        name: 'Devendra Kbilan',
-        position: 'Sales Representative',
-        imageUrl: '/images/staff/devendra-kbilan.jpg',
-        contactInfo: 'devendra.kbilan@example.com',
+        name: 'Prasanna Walukumara',
+        position: 'Sales Assistant',
+        imageUrl: '/images/staff/sales-assistant-prasanna-walukumara.webp',
+        contactInfo: 'prasanna.walukumara@example.com',
       },
     }),
     prisma.staff.create({
       data: {
-        name: 'V Krishan',
-        position: 'Store Associate',
-        imageUrl: '/images/staff/v-krishan.jpg',
-        contactInfo: 'v.krishan@example.com',
+        name: 'C. Swetha Gimhani Fonseka',
+        position: 'Cashier',
+        imageUrl: '/images/staff/cashier-c-swetha-gimhani-fonseka.webp',
+        contactInfo: 'swetha.fonseka@example.com',
       },
     }),
     prisma.staff.create({
       data: {
-        name: 'S Dulisha',
-        position: 'Customer Support Agent',
-        imageUrl: '/images/staff/s-dulisha.jpg',
-        contactInfo: 's.dulisha@example.com',
+        name: 'V. Kishan',
+        position: 'Sales Assistant',
+        imageUrl: '/images/staff/sales-assistant-v-kishan.webp',
+        contactInfo: 'v.kishan@example.com',
       },
     }),
     prisma.staff.create({
       data: {
-        name: 'M Dilakshika',
-        position: 'Retail Assistant',
-        imageUrl: '/images/staff/m-dilakshika.jpg',
-        contactInfo: 'm.dilakshika@example.com',
-      },
-    }),
-    prisma.staff.create({
-      data: {
-        name: 'M devika',
-        position: 'Sales Coordinator',
-        imageUrl: '/images/staff/m-devika.jpg',
+        name: 'M.S. Devika',
+        position: 'Cashier',
+        imageUrl: '/images/staff/cashier-m-s-devika.webp',
         contactInfo: 'm.devika@example.com',
       },
     }),
     prisma.staff.create({
       data: {
-        name: 'Pathmini Susantha Munasinghe',
-        position: 'Customer Relations Manager',
-        imageUrl: '/images/staff/pathmini-munasinghe.jpg',
-        contactInfo: 'pathmini.munasinghe@example.com',
+        name: 'Rengiah Rajamani',
+        position: 'Supervisor',
+        imageUrl: '/images/staff/supervisor-rengiah-rajamani.webp',
+        contactInfo: 'rengiah.rajamani@example.com',
       },
     }),
     prisma.staff.create({
       data: {
-        name: 'Rajamini',
-        position: 'Service Desk Representative',
-        imageUrl: '/images/staff/rajamini.jpg',
-        contactInfo: 'rajamini@example.com',
-      },
-    }),
-    prisma.staff.create({
-      data: {
-        name: 'C Swetha Gimhani Gonseka',
-        position: 'Customer Experience Specialist',
-        imageUrl: '/images/staff/swetha-gonseka.jpg',
-        contactInfo: 'swetha.gonseka@example.com',
-      },
-    }),
-    prisma.staff.create({
-      data: {
-        name: 'Hansi Sadamini Bagya',
-        position: 'Client Services Representative',
-        imageUrl: '/images/staff/hansi-bagya.jpg',
-        contactInfo: 'hansi.bagya@example.com',
-      },
-    }),
-    prisma.staff.create({
-      data: {
-        name: 'Prasanna Weelu Kumara',
-        position: 'Customer Support Specialist',
-        imageUrl: '/images/staff/prasanna-kumara.jpg',
-        contactInfo: 'prasanna.kumara@example.com',
+        name: 'Padmini Susantha Munsinghe',
+        position: 'Team Leader',
+        imageUrl: '/images/staff/team-leader-padmini-susantha-munsinghe.webp',
+        contactInfo: 'padmini.munsinghe@example.com',
       },
     }),
   ]);

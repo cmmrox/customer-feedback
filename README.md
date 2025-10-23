@@ -115,7 +115,7 @@ npm run dev
 4. **Initialize the database:**
    ```bash
    docker-compose -f docker-compose-app.yml exec app npx prisma migrate deploy
-   docker-compose -f docker-compose-app.yml exec app npx prisma db seed
+   docker-compose -f docker-compose-app.yml exec app npm run prisma:seed
    ```
 
 ### Maintenance
