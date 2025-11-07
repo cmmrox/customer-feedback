@@ -121,7 +121,7 @@ export default function RateStaffPage() {
       if (inactivityTimeout.current) clearTimeout(inactivityTimeout.current);
       inactivityTimeout.current = setTimeout(() => {
         router.push('/');
-      }, 5000);
+      }, 10000);
     };
     const events = ['mousemove', 'mousedown', 'keydown', 'touchstart'];
     events.forEach(event => window.addEventListener(event, resetTimer));
