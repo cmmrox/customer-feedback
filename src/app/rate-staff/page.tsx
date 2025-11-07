@@ -21,8 +21,8 @@ interface StaffCardProps {
 
 function StaffShimmer() {
   return (
-    <div className="bg-white rounded-xl shadow-md p-6 flex items-center gap-4 w-full min-h-[110px] animate-pulse">
-      <div className="w-20 h-20 bg-gray-200 rounded-full flex-shrink-0" />
+    <div className="bg-white shadow-md pr-6 flex items-center gap-4 w-full min-h-[110px] animate-pulse overflow-hidden">
+      <div className="h-[110px] w-[110px] bg-gray-200 flex-shrink-0" />
       <div className="flex flex-col items-start flex-grow gap-2">
         <div className="w-32 h-5 bg-gray-200 rounded" />
         <div className="w-20 h-4 bg-gray-200 rounded" />
@@ -46,21 +46,21 @@ function StaffCard({ staffMember, isSelected, isSubmitting, onSubmit }: StaffCar
 
   return (
     <button
-      className={`bg-white rounded-xl shadow-md p-6 flex items-center gap-4 w-full transition-transform min-h-[110px] ${isSelected ? 'scale-105 ring-2 ring-yellow-500' : ''} ${isThisCardSubmitting ? 'opacity-60 cursor-not-allowed' : ''}`}
+      className={`bg-white shadow-md pr-6 flex items-center gap-4 w-full transition-transform min-h-[110px] overflow-hidden ${isSelected ? 'scale-105 ring-2 ring-yellow-500' : ''} ${isThisCardSubmitting ? 'opacity-60 cursor-not-allowed' : ''}`}
       onClick={() => onSubmit(staffMember.id)}
       disabled={isThisCardSubmitting}
     >
-      <div className="w-20 h-20 relative flex-shrink-0">
+      <div className="h-[110px] w-[110px] relative flex-shrink-0">
         <Image
           src={imageSrc}
           alt={staffMember.name}
           fill
-          className="rounded-full object-cover border border-gray-200"
+          className="object-cover"
           onError={handleImageError}
           priority={false}
         />
         {isThisCardSubmitting && (
-          <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-70 rounded-full">
+          <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-70">
             <svg className="animate-spin h-8 w-8 text-yellow-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
