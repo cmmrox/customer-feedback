@@ -85,7 +85,7 @@ export default function DissatisfactionReasonsPage() {
   return (
     <div className="min-h-screen bg-[#FFB800] flex flex-col items-center justify-center">
       <div className="w-full max-w-md rounded-xl shadow-lg p-8 bg-[#FFB800]">
-        <h1 className="text-3xl font-bold text-center mb-2">We&apos;re sorry to hear that.<br />What went wrong?</h1>
+        <h1 className="text-3xl font-bold text-center mb-2">What went wrong?</h1>
         <p className="text-center mb-6 text-sm">Please select all that apply. Your feedback helps us improve.</p>
         {loading ? (
           <Shimmer />

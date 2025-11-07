@@ -106,7 +106,7 @@ export default function HomePage() {
           <span className="text-xl font-semibold">Good</span>
         </button>
 
-        {/* Not Satisfied Button */}
+        {/* Bad Button */}
         <button
           onClick={() => handleRatingSelect('not_satisfied')}
           disabled={isSubmitting}
@@ -119,13 +119,13 @@ export default function HomePage() {
           <div className="bg-white rounded-full p-4 mb-2 shadow-lg hover:shadow-xl transition-shadow">
             <Image
               src="/emojis/not-satisfied.png"
-              alt="Not Satisfied Rating"
+              alt="Bad Rating"
               width={60}
               height={60}
               className="rounded-full"
             />
           </div>
-          <span className="text-xl font-semibold">Not Satisfied</span>
+          <span className="text-xl font-semibold">Bad</span>
         </button>
       </div>
     </div>

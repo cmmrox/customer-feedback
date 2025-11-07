@@ -370,10 +370,10 @@ export default function AdminDashboard() {
               </div>
             </div>
           </div>
-          {/* Monthly "Not Satisfied" Count */}
+          {/* Monthly "Bad" Count */}
           <div className="bg-white rounded-lg shadow p-6 flex flex-1 min-h-[260px] items-center justify-center">
             <div className="flex flex-col items-center justify-center w-full h-full">
-              <div className="text-md font-semibold text-red-700 mb-2 text-center">Monthly &quot;Not Satisfied&quot; Count</div>
+              <div className="text-md font-semibold text-red-700 mb-2 text-center">Monthly &quot;Bad&quot; Count</div>
               {isDissatisfactionLoading ? (
                 <div className="text-center py-8 text-gray-500">Loading...</div>
               ) : dissatisfactionError ? (
@@ -382,7 +382,7 @@ export default function AdminDashboard() {
                 <div className="text-6xl font-extrabold text-red-600 mb-2 text-center">{dissatisfactionCount}</div>
               )}
               <div className="text-xs text-gray-500 text-center">
-                Total &quot;Not Satisfied&quot; feedback received in {selectedMonth}.
+                Total &quot;Bad&quot; feedback received in {selectedMonth}.
               </div>
             </div>
           </div>
@@ -469,7 +469,7 @@ export default function AdminDashboard() {
             )}
           </div>
           <div className="text-xs text-gray-500 mt-2 text-center">
-            Breakdown of &quot;Not Satisfied&quot; feedback by common reason categories.
+            Breakdown of &quot;Bad&quot; feedback by common reason categories.
           </div>
         </div>
 
@@ -486,7 +486,7 @@ export default function AdminDashboard() {
             )}
           </div>
           <div className="text-xs text-gray-500 mt-1 text-center">
-            Trend of &quot;Not Satisfied&quot; feedback over the past 6 months.
+            Trend of &quot;Bad&quot; feedback over the past 6 months.
           </div>
         </div>
 
