@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 interface DissatisfactionReason {
@@ -21,7 +21,7 @@ function ReasonShimmer() {
   );
 }
 
-export default function DissatisfactionReasonsPage() {
+function DissatisfactionReasonsContent() {
   const [reasons, setReasons] = useState<DissatisfactionReason[]>([]);
   const [selectedReason, setSelectedReason] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
@@ -149,5 +149,29 @@ export default function DissatisfactionReasonsPage() {
         )}
       </div>
     </div>
+  );
+}
+
+function DissatisfactionReasonsLoading() {
+  return (
+    <div className="min-h-screen bg-[#FFB800] flex flex-col items-center p-0">
+      <div className="w-full max-w-4xl px-4 py-8">
+        <h1 className="text-3xl font-bold text-center mb-1">What went wrong?</h1>
+        <p className="text-md text-center mb-8">Please select all that apply. Your feedback helps us improve.</p>
+        <div className="flex flex-col gap-6 mb-8">
+          {Array.from({ length: 5 }).map((_, idx) => (
+            <ReasonShimmer key={idx} />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function DissatisfactionReasonsPage() {
+  return (
+    <Suspense fallback={<DissatisfactionReasonsLoading />}>
+      <DissatisfactionReasonsContent />
+    </Suspense>
   );
 } 

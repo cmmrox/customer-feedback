@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import React from 'react';
 
@@ -79,7 +79,7 @@ function StaffCard({ staffMember, isSelected, isSubmitting, onSubmit }: StaffCar
   );
 }
 
-export default function RateStaffPage() {
+function RateStaffContent() {
   const [staff, setStaff] = useState<StaffMember[]>([]);
   const [selectedStaff, setSelectedStaff] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -181,5 +181,27 @@ export default function RateStaffPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+function RateStaffLoading() {
+  return (
+    <div className="min-h-screen bg-[#FFB800] flex flex-col items-center p-0">
+      <div className="w-full max-w-6xl px-4 py-8">
+        <h1 className="text-3xl font-bold text-center mb-1">Please rate our service staff</h1>
+        <p className="text-md text-center mb-8">Tap a face to rate the team members you interacted with</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {Array.from({ length: 6 }).map((_, idx) => <StaffShimmer key={idx} />)}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function RateStaffPage() {
+  return (
+    <Suspense fallback={<RateStaffLoading />}>
+      <RateStaffContent />
+    </Suspense>
   );
 } 

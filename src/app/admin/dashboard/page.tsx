@@ -120,7 +120,6 @@ export default function AdminDashboard() {
         const data = await res.json();
         setStaffSelections(data);
       } catch (err) {
-        // eslint-disable-next-line no-console
         console.error(err);
         setError("Could not load staff selections");
         setStaffSelections([]);
@@ -142,7 +141,6 @@ export default function AdminDashboard() {
         const { count } = await res.json();
         setGoodCount(count);
       } catch (err) {
-        // eslint-disable-next-line no-console
         console.error(err);
         setGoodError("Could not load good count data");
         setGoodCount(0);
@@ -169,7 +167,6 @@ export default function AdminDashboard() {
         setDissatisfactionPieData(currentMonth);
         setTrendData(trends);
       } catch (err) {
-        // eslint-disable-next-line no-console
         console.error(err);
         setDissatisfactionError("Could not load dissatisfaction data");
         setDissatisfactionCount(0);
@@ -193,7 +190,6 @@ export default function AdminDashboard() {
         const { data } = await res.json();
         setDissatisfactionTrends(data);
       } catch (err) {
-        // eslint-disable-next-line no-console
         console.error(err);
         setDissatisfactionTrendsError("Could not load dissatisfaction trends");
         setDissatisfactionTrends([]);
@@ -254,7 +250,6 @@ export default function AdminDashboard() {
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
     } catch (err) {
-      // eslint-disable-next-line no-console
       console.error("Excel export failed:", err);
       alert("Failed to export Excel file.");
     } finally {
@@ -283,7 +278,6 @@ export default function AdminDashboard() {
       });
       doc.save(`staff-selections-${selectedMonth.replace(/\s/g, "-")}.pdf`);
     } catch (err) {
-      // eslint-disable-next-line no-console
       console.error("PDF export failed:", err);
       alert("Failed to export PDF file.");
     } finally {
