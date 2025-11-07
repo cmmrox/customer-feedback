@@ -35,7 +35,7 @@ async function main() {
       data: {
         name: 'J.M. Hansi Sandamini Bhagya',
         position: 'Chief Cashier',
-        imageUrl: '/images/staff/chief-cashier-j-m-hansi-sandamini-bhagya.webp',
+        imageUrl: '/images/staff/chief-cashier-j-m-hansi-sandamini-bhagya.jpg',
         contactInfo: 'hansi.bhagya@example.com',
       },
     }),
@@ -43,7 +43,7 @@ async function main() {
       data: {
         name: 'Prasanna Walukumara',
         position: 'Sales Assistant',
-        imageUrl: '/images/staff/sales-assistant-prasanna-walukumara.webp',
+        imageUrl: '/images/staff/sales-assistant-prasanna-walukumara.jpg',
         contactInfo: 'prasanna.walukumara@example.com',
       },
     }),
@@ -51,7 +51,7 @@ async function main() {
       data: {
         name: 'C. Swetha Gimhani Fonseka',
         position: 'Cashier',
-        imageUrl: '/images/staff/cashier-c-swetha-gimhani-fonseka.webp',
+        imageUrl: '/images/staff/cashier-c-swetha-gimhani-fonseka.jpg',
         contactInfo: 'swetha.fonseka@example.com',
       },
     }),
@@ -59,7 +59,7 @@ async function main() {
       data: {
         name: 'V. Kishan',
         position: 'Sales Assistant',
-        imageUrl: '/images/staff/sales-assistant-v-kishan.webp',
+        imageUrl: '/images/staff/sales-assistant-v-kishan.jpg',
         contactInfo: 'v.kishan@example.com',
       },
     }),
@@ -67,7 +67,7 @@ async function main() {
       data: {
         name: 'M.S. Devika',
         position: 'Cashier',
-        imageUrl: '/images/staff/cashier-m-s-devika.webp',
+        imageUrl: '/images/staff/cashier-m-s-devika.jpg',
         contactInfo: 'm.devika@example.com',
       },
     }),
@@ -75,7 +75,7 @@ async function main() {
       data: {
         name: 'Rengiah Rajamani',
         position: 'Supervisor',
-        imageUrl: '/images/staff/supervisor-rengiah-rajamani.webp',
+        imageUrl: '/images/staff/supervisor-rengiah-rajamani.jpg',
         contactInfo: 'rengiah.rajamani@example.com',
       },
     }),
@@ -83,8 +83,16 @@ async function main() {
       data: {
         name: 'Padmini Susantha Munsinghe',
         position: 'Team Leader',
-        imageUrl: '/images/staff/team-leader-padmini-susantha-munsinghe.webp',
+        imageUrl: '/images/staff/team-leader-padmini-susantha-munsinghe.jpg',
         contactInfo: 'padmini.munsinghe@example.com',
+      },
+    }),
+    prisma.staff.create({
+      data: {
+        name: 'M. Dhilakshika',
+        position: 'Team Member',
+        imageUrl: '/images/staff/team-member-m-dhilakshika.jpg',
+        contactInfo: 'm.dhilakshika@example.com',
       },
     }),
   ]);

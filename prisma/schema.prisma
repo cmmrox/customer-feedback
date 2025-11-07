@@ -24,6 +24,7 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
+  @@index([isActive])
   @@map("users")
 }
 
@@ -39,6 +40,8 @@ model Staff {
   updatedAt     DateTime        @updatedAt
   feedbackStaff FeedbackStaff[]
 
+  @@index([status])
+  @@index([name])
   @@map("staff")
 }
 
@@ -51,6 +54,8 @@ model Feedback {
   feedbackStaff     FeedbackStaff[]
   feedbackReasons   FeedbackReason[]
 
+  @@index([overallRating, timestamp])
+  @@index([timestamp])
   @@map("feedback")
 }
 
@@ -67,6 +72,7 @@ model FeedbackStaff {
   createdAt     DateTime  @default(now())
 
   @@unique([feedbackId, staffId])
+  @@index([staffId])
   @@map("feedback_staff")
 }
 
@@ -89,6 +95,8 @@ model DissatisfactionReason {
   category      Category          @relation(fields: [categoryId], references: [id])
   feedbackReasons FeedbackReason[]
 
+  @@index([active, categoryId])
+  @@index([categoryId])
   @@map("dissatisfaction_reasons")
 }
 
@@ -102,6 +110,7 @@ model FeedbackReason {
   createdAt             DateTime             @default(now())
 
   @@unique([feedbackId, reasonId])
+  @@index([reasonId])
   @@map("feedback_reasons")
 }
 
