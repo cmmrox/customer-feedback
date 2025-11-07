@@ -52,6 +52,11 @@ export default function AdminDashboard() {
   const [isTrendsLoading, setIsTrendsLoading] = useState<boolean>(false);
   const [trendsError, setTrendsError] = useState<string | null>(null);
 
+  // Good count state
+  const [goodCount, setGoodCount] = useState<number>(0);
+  const [isGoodLoading, setIsGoodLoading] = useState<boolean>(false);
+  const [goodError, setGoodError] = useState<string | null>(null);
+
   // Dissatisfaction summary state
   const [dissatisfactionCount, setDissatisfactionCount] = useState<number>(0);
   const [dissatisfactionPieData, setDissatisfactionPieData] = useState<{ reason: string; value: number }[]>([]);
@@ -116,6 +121,28 @@ export default function AdminDashboard() {
     fetchStaffSelections();
   }, [selectedMonth]);
 
+  // Fetch good count data
+  useEffect(() => {
+    async function fetchGoodData() {
+      setIsGoodLoading(true);
+      setGoodError(null);
+      try {
+        const res = await fetch(`/api/good-summary?month=${encodeURIComponent(selectedMonth)}`);
+        if (!res.ok) throw new Error("Failed to fetch good count data");
+        const { count } = await res.json();
+        setGoodCount(count);
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.error(err);
+        setGoodError("Could not load good count data");
+        setGoodCount(0);
+      } finally {
+        setIsGoodLoading(false);
+      }
+    }
+    fetchGoodData();
+  }, [selectedMonth]);
+
   // Fetch dissatisfaction summary and trend comparison data
   useEffect(() => {
     async function fetchDissatisfactionData() {
@@ -125,11 +152,9 @@ export default function AdminDashboard() {
         // Fetch comparison data with trends
         const res = await fetch(`/api/dissatisfaction-comparison?month=${encodeURIComponent(selectedMonth)}`);
         if (!res.ok) throw new Error("Failed to fetch dissatisfaction data");
-        const { currentMonth, trends } = await res.json();
+        const { totalCount, currentMonth, trends } = await res.json();
 
-        // Calculate total count
-        const totalCount = currentMonth.reduce((sum: number, item: { value: number }) => sum + item.value, 0);
-
+        // Use totalCount from API (includes all NOT_SATISFIED feedbacks, not just those with reasons)
         setDissatisfactionCount(totalCount);
         setDissatisfactionPieData(currentMonth);
         setTrendData(trends);
@@ -357,10 +382,26 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Dissatisfaction Reports */}
+      {/* Feedback Reports */}
       <div className="max-w-7xl mx-auto mt-10 px-4">
-        <h2 className="text-2xl font-bold mb-6 text-gray-900">Dissatisfaction Reports</h2>
+        <h2 className="text-2xl font-bold mb-6 text-gray-900">Feedback Reports</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 items-stretch">
+          {/* Monthly "Good" Count */}
+          <div className="bg-white rounded-lg shadow p-6 flex flex-1 min-h-[260px] items-center justify-center">
+            <div className="flex flex-col items-center justify-center w-full h-full">
+              <div className="text-md font-semibold text-green-700 mb-2 text-center">Monthly &quot;Good&quot; Count</div>
+              {isGoodLoading ? (
+                <div className="text-center py-8 text-gray-500">Loading...</div>
+              ) : goodError ? (
+                <div className="text-center py-8 text-red-600">{goodError}</div>
+              ) : (
+                <div className="text-6xl font-extrabold text-green-600 mb-2 text-center">{goodCount}</div>
+              )}
+              <div className="text-xs text-gray-500 text-center">
+                Total &quot;Good&quot; feedback received in {selectedMonth}.
+              </div>
+            </div>
+          </div>
           {/* Monthly "Not Satisfied" Count */}
           <div className="bg-white rounded-lg shadow p-6 flex flex-1 min-h-[260px] items-center justify-center">
             <div className="flex flex-col items-center justify-center w-full h-full">
@@ -377,6 +418,8 @@ export default function AdminDashboard() {
               </div>
             </div>
           </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 items-stretch">
           {/* Dissatisfaction by Reason (Pie Chart) */}
           <div className="bg-white rounded-lg shadow p-6 flex flex-col items-center flex-1 min-h-[260px]">
             <div className="text-md font-semibold text-red-700 mb-2">Dissatisfaction by Reason</div>

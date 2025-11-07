@@ -86,6 +86,17 @@ export async function GET(req: NextRequest) {
   const currentData = await getDissatisfactionData(currentStart, currentEnd);
   const previousData = await getDissatisfactionData(previousStart, previousEnd);
 
+  // Get total count of ALL NOT_SATISFIED feedbacks in current month (including those without reasons)
+  const totalCount = await prisma.feedback.count({
+    where: {
+      overallRating: 'NOT_SATISFIED',
+      timestamp: {
+        gte: currentStart,
+        lte: currentEnd,
+      },
+    },
+  });
+
   // Build a map for previous month data
   const previousMap = new Map<string, number>();
   previousData.forEach((item) => {
@@ -131,6 +142,7 @@ export async function GET(req: NextRequest) {
   });
 
   return NextResponse.json({
+    totalCount,
     currentMonth: currentData,
     previousMonth: previousData,
     trends,
