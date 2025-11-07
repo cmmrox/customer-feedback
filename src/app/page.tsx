@@ -55,12 +55,12 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-[#FFB800] flex flex-col items-center justify-center p-4">
       {/* Logo Section */}
-      <div className="bg-white rounded-full p-4 mb-8">
+      <div className="bg-white rounded-full p-6 mb-8 shadow-lg">
         <Image
           src="/logo.png"
           alt="Company Logo"
-          width={80}
-          height={80}
+          width={120}
+          height={120}
           className="rounded-full"
         />
       </div>
@@ -94,12 +94,12 @@ export default function HomePage() {
             isSubmitting ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'
           }`}
         >
-          <div className="bg-white rounded-full p-4 mb-2 shadow-lg hover:shadow-xl transition-shadow">
+          <div className="bg-white rounded-full p-6 mb-2 shadow-lg hover:shadow-xl transition-shadow">
             <Image
               src="/emojis/good.png"
               alt="Good Rating"
-              width={60}
-              height={60}
+              width={90}
+              height={90}
               className="rounded-full"
             />
           </div>
@@ -116,12 +116,12 @@ export default function HomePage() {
             isSubmitting ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'
           }`}
         >
-          <div className="bg-white rounded-full p-4 mb-2 shadow-lg hover:shadow-xl transition-shadow">
+          <div className="bg-white rounded-full p-6 mb-2 shadow-lg hover:shadow-xl transition-shadow">
             <Image
               src="/emojis/not-satisfied.png"
               alt="Bad Rating"
-              width={60}
-              height={60}
+              width={90}
+              height={90}
               className="rounded-full"
             />
           </div>
