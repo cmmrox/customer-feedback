@@ -83,30 +83,37 @@ export default function DissatisfactionReasonsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FFB800] flex flex-col items-center justify-center">
-      <div className="w-full max-w-md rounded-xl shadow-lg p-8 bg-[#FFB800]">
-        <h1 className="text-3xl font-bold text-center mb-2">What went wrong?</h1>
-        <p className="text-center mb-6 text-sm">Please select all that apply. Your feedback helps us improve.</p>
+    <div className="min-h-screen bg-[#FFB800] flex flex-col items-center p-0">
+      <div className="w-full max-w-4xl px-4 py-8">
+        <h1 className="text-3xl font-bold text-center mb-1">What went wrong?</h1>
+        <p className="text-md text-center mb-8">Please select all that apply. Your feedback helps us improve.</p>
         {loading ? (
           <Shimmer />
         ) : error ? (
           <div className="text-center text-red-600 py-8">{error}</div>
         ) : (
           <form onSubmit={handleSubmit}>
-            <div className="flex flex-col gap-4 mb-8">
+            <div className="flex flex-col gap-6 mb-8">
               {reasons.map((reason) => (
-                <label key={reason.id} className="flex items-center gap-3 cursor-pointer text-lg font-medium">
+                <label
+                  key={reason.id}
+                  className={`bg-white shadow-md p-6 flex items-center gap-4 w-full transition-transform cursor-pointer rounded-lg ${
+                    selectedReason === reason.id ? 'scale-105 ring-2 ring-yellow-500' : ''
+                  }`}
+                >
                   <input
                     type="radio"
                     name="reason"
                     value={reason.id}
                     checked={selectedReason === reason.id}
                     onChange={() => setSelectedReason(reason.id)}
-                    className="w-6 h-6 accent-black"
+                    className="w-8 h-8 accent-black flex-shrink-0"
                     required
                   />
-                  {reason.description}
-                  <span className="ml-2 text-xs text-gray-600">({reason.category.name})</span>
+                  <div className="flex flex-col items-start flex-grow">
+                    <span className="font-bold text-xl mb-1">{reason.description}</span>
+                    <span className="text-sm text-gray-600">({reason.category.name})</span>
+                  </div>
                 </label>
               ))}
             </div>
