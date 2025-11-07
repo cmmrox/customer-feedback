@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback } from "react";
 import { StaffBarChart } from "@/components/ui/staff-bar-chart";
 import { StaffSelectionTrendsChart } from "@/components/ui/staff-selection-trends-chart";
 import { DissatisfactionPieChart } from "@/components/ui/dissatisfaction-pie-chart";
+import { DissatisfactionTrendsChart } from "@/components/ui/dissatisfaction-trends-chart";
 import type { StaffSelection } from "@/lib/staff-selection";
 import ExcelJS from "exceljs";
 import jsPDF from "jspdf";
@@ -72,6 +73,15 @@ export default function AdminDashboard() {
     change: number;
   }
   const [trendData, setTrendData] = useState<TrendData[]>([]);
+
+  // Dissatisfaction trends state (6 months)
+  interface DissatisfactionTrend {
+    month: string;
+    count: number;
+  }
+  const [dissatisfactionTrends, setDissatisfactionTrends] = useState<DissatisfactionTrend[]>([]);
+  const [isDissatisfactionTrendsLoading, setIsDissatisfactionTrendsLoading] = useState<boolean>(false);
+  const [dissatisfactionTrendsError, setDissatisfactionTrendsError] = useState<string | null>(null);
 
   // Export states
   const [isExportingExcel, setIsExportingExcel] = useState<boolean>(false);
@@ -171,6 +181,28 @@ export default function AdminDashboard() {
     }
     fetchDissatisfactionData();
   }, [selectedMonth]);
+
+  // Fetch dissatisfaction trends (6 months)
+  useEffect(() => {
+    async function fetchDissatisfactionTrends() {
+      setIsDissatisfactionTrendsLoading(true);
+      setDissatisfactionTrendsError(null);
+      try {
+        const res = await fetch("/api/dissatisfaction-trends");
+        if (!res.ok) throw new Error("Failed to fetch dissatisfaction trends");
+        const { data } = await res.json();
+        setDissatisfactionTrends(data);
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.error(err);
+        setDissatisfactionTrendsError("Could not load dissatisfaction trends");
+        setDissatisfactionTrends([]);
+      } finally {
+        setIsDissatisfactionTrendsLoading(false);
+      }
+    }
+    fetchDissatisfactionTrends();
+  }, []);
 
   /**
    * Export staffSelections as Excel file
@@ -319,73 +351,9 @@ export default function AdminDashboard() {
         </div>
       </div>
 
+      {/* Feedback Summary Cards */}
       <div className="max-w-7xl mx-auto mt-8 px-4">
-        <h2 className="text-2xl font-bold mb-6 text-gray-900">Monthly Staff Interaction Reports</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Staff Member Selections */}
-          <div className="bg-white rounded-lg shadow p-6 flex flex-col">
-            <h3 className="text-lg font-semibold mb-4 text-blue-700">Staff Member Selections</h3>
-            {isLoading ? (
-              <div className="text-center py-8 text-gray-500">Loading...</div>
-            ) : error ? (
-              <div className="text-center py-8 text-red-600">{error}</div>
-            ) : staffSelections.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">No data for this month.</div>
-            ) : (
-              <table className="min-w-full text-sm mb-4">
-                <thead>
-                  <tr className="bg-gray-50">
-                    <th className="px-4 py-2 text-left text-gray-800">STAFF NAME</th>
-                    <th className="px-4 py-2 text-left text-gray-800">TIMES SELECTED</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {staffSelections.map((staff) => (
-                    <tr key={staff.id} className="border-b">
-                      <td className="px-4 py-2 text-gray-700">{staff.name}</td>
-                      <td className="px-4 py-2 text-gray-700">{staff.count}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
-          {/* Staff Comparison (Selections) */}
-          <div className="bg-white rounded-lg shadow p-6 flex flex-col">
-            <h3 className="text-lg font-semibold mb-4 text-blue-700">Staff Comparison (Selections)</h3>
-            <div className="flex-1 flex items-center justify-center bg-gray-100 rounded-lg min-h-[220px]">
-              <StaffBarChart data={staffSelections} />
-            </div>
-            <div className="text-xs text-gray-500 mt-2 text-center">
-              Comparison of total times each staff member was selected by customers this month.
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Selection Trends Over Time */}
-      <div className="max-w-7xl mx-auto mt-8 px-4">
-        <div className="bg-white rounded-lg shadow p-6 flex flex-col">
-          <div className="text-blue-700 font-semibold text-sm mb-2 cursor-pointer">Selection Trends Over Time (Last 6 Months)</div>
-          <div className="bg-gray-200 rounded-lg flex items-center justify-center min-h-[260px] mb-2">
-            {isTrendsLoading ? (
-              <div className="text-center py-8 text-gray-500">Loading...</div>
-            ) : trendsError ? (
-              <div className="text-center py-8 text-red-600">{trendsError}</div>
-            ) : (
-              <StaffSelectionTrendsChart data={selectionTrends} staffNames={staffNames} />
-            )}
-          </div>
-          <div className="text-xs text-gray-500 mt-1 text-center">
-            Graphical representation of staff selection trends over the past few months.
-          </div>
-        </div>
-      </div>
-
-      {/* Feedback Reports */}
-      <div className="max-w-7xl mx-auto mt-10 px-4">
-        <h2 className="text-2xl font-bold mb-6 text-gray-900">Feedback Reports</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 items-stretch">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
           {/* Monthly "Good" Count */}
           <div className="bg-white rounded-lg shadow p-6 flex flex-1 min-h-[260px] items-center justify-center">
             <div className="flex flex-col items-center justify-center w-full h-full">
@@ -419,27 +387,112 @@ export default function AdminDashboard() {
             </div>
           </div>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 items-stretch">
-          {/* Dissatisfaction by Reason (Pie Chart) */}
-          <div className="bg-white rounded-lg shadow p-6 flex flex-col items-center flex-1 min-h-[260px]">
-            <div className="text-md font-semibold text-red-700 mb-2">Dissatisfaction by Reason</div>
-            <div className="flex-1 flex items-center justify-center w-full bg-gray-100 rounded-lg h-64">
-              {isDissatisfactionLoading ? (
-                <div className="text-center py-8 text-gray-500">Loading...</div>
-              ) : dissatisfactionError ? (
-                <div className="text-center py-8 text-red-600">{dissatisfactionError}</div>
-              ) : (
-                <DissatisfactionPieChart data={dissatisfactionPieData} />
-              )}
-            </div>
-            <div className="text-xs text-gray-500 mt-2 text-center">
-              Breakdown of &quot;Not Satisfied&quot; feedback by common reason categories.
-            </div>
+      </div>
+
+      {/* Staff Member Selections */}
+      <div className="max-w-7xl mx-auto mt-8 px-4">
+        <div className="bg-white rounded-lg shadow p-6 flex flex-col">
+          <h3 className="text-lg font-semibold mb-4 text-blue-700">Staff Member Selections</h3>
+          {isLoading ? (
+            <div className="text-center py-8 text-gray-500">Loading...</div>
+          ) : error ? (
+            <div className="text-center py-8 text-red-600">{error}</div>
+          ) : staffSelections.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">No data for this month.</div>
+          ) : (
+            <table className="min-w-full text-sm mb-4">
+              <thead>
+                <tr className="bg-gray-50">
+                  <th className="px-4 py-2 text-left text-gray-800">STAFF NAME</th>
+                  <th className="px-4 py-2 text-left text-gray-800">TIMES SELECTED</th>
+                </tr>
+              </thead>
+              <tbody>
+                {staffSelections.map((staff) => (
+                  <tr key={staff.id} className="border-b">
+                    <td className="px-4 py-2 text-gray-700">{staff.name}</td>
+                    <td className="px-4 py-2 text-gray-700">{staff.count}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+
+      {/* Staff Comparison Chart */}
+      <div className="max-w-7xl mx-auto mt-8 px-4">
+        <div className="bg-white rounded-lg shadow p-6 flex flex-col">
+          <h3 className="text-lg font-semibold mb-4 text-blue-700">Staff Comparison (Selections)</h3>
+          <div className="flex-1 flex items-center justify-center bg-gray-100 rounded-lg min-h-[220px]">
+            <StaffBarChart data={staffSelections} />
+          </div>
+          <div className="text-xs text-gray-500 mt-2 text-center">
+            Comparison of total times each staff member was selected by customers this month.
           </div>
         </div>
+      </div>
+
+      {/* Selection Trends Over Time */}
+      <div className="max-w-7xl mx-auto mt-8 px-4">
+        <div className="bg-white rounded-lg shadow p-6 flex flex-col">
+          <h3 className="text-lg font-semibold mb-4 text-blue-700">Selection Trends Over Time (Last 6 Months)</h3>
+          <div className="bg-gray-100 rounded-lg flex items-center justify-center min-h-[260px] mb-2">
+            {isTrendsLoading ? (
+              <div className="text-center py-8 text-gray-500">Loading...</div>
+            ) : trendsError ? (
+              <div className="text-center py-8 text-red-600">{trendsError}</div>
+            ) : (
+              <StaffSelectionTrendsChart data={selectionTrends} staffNames={staffNames} />
+            )}
+          </div>
+          <div className="text-xs text-gray-500 mt-1 text-center">
+            Graphical representation of staff selection trends over the past few months.
+          </div>
+        </div>
+      </div>
+
+      {/* Dissatisfaction Reports Section */}
+      <div className="max-w-7xl mx-auto mt-10 px-4">
+        <h2 className="text-2xl font-bold mb-6 text-gray-900">Dissatisfaction Reports</h2>
+        
+        {/* Dissatisfaction by Reason Pie Chart */}
+        <div className="bg-white rounded-lg shadow p-6 flex flex-col items-center min-h-[260px] mb-8">
+          <h3 className="text-lg font-semibold text-red-700 mb-4">Dissatisfaction by Reason</h3>
+          <div className="flex-1 flex items-center justify-center w-full bg-gray-100 rounded-lg h-64">
+            {isDissatisfactionLoading ? (
+              <div className="text-center py-8 text-gray-500">Loading...</div>
+            ) : dissatisfactionError ? (
+              <div className="text-center py-8 text-red-600">{dissatisfactionError}</div>
+            ) : (
+              <DissatisfactionPieChart data={dissatisfactionPieData} />
+            )}
+          </div>
+          <div className="text-xs text-gray-500 mt-2 text-center">
+            Breakdown of &quot;Not Satisfied&quot; feedback by common reason categories.
+          </div>
+        </div>
+
+        {/* 6-Month Dissatisfaction Trends */}
+        <div className="bg-white rounded-lg shadow p-6 flex flex-col mb-8">
+          <h3 className="text-lg font-semibold mb-4 text-red-700">Dissatisfaction Trends Over Time (Last 6 Months)</h3>
+          <div className="bg-gray-100 rounded-lg flex items-center justify-center min-h-[260px] mb-2">
+            {isDissatisfactionTrendsLoading ? (
+              <div className="text-center py-8 text-gray-500">Loading...</div>
+            ) : dissatisfactionTrendsError ? (
+              <div className="text-center py-8 text-red-600">{dissatisfactionTrendsError}</div>
+            ) : (
+              <DissatisfactionTrendsChart data={dissatisfactionTrends} />
+            )}
+          </div>
+          <div className="text-xs text-gray-500 mt-1 text-center">
+            Trend of &quot;Not Satisfied&quot; feedback over the past 6 months.
+          </div>
+        </div>
+
         {/* Recurring Issues Analysis */}
-        <div className="bg-white rounded-xl shadow-md p-6 mt-2">
-          <div className="text-lg font-semibold text-red-600 mb-4">Recurring Issues Analysis</div>
+        <div className="bg-white rounded-xl shadow-md p-6">
+          <h3 className="text-lg font-semibold text-red-600 mb-4">Recurring Issues Analysis</h3>
           {isDissatisfactionLoading ? (
             <div className="text-center py-8 text-gray-500">Loading...</div>
           ) : dissatisfactionError ? (
