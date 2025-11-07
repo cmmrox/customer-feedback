@@ -2,12 +2,23 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Shimmer } from "@/components/ui/shimmer";
 
 interface DissatisfactionReason {
   id: string;
   description: string;
   category: { name: string };
+}
+
+function ReasonShimmer() {
+  return (
+    <div className="bg-white shadow-md p-6 flex items-center gap-4 w-full animate-pulse rounded-lg">
+      <div className="w-8 h-8 rounded-full bg-gray-200 flex-shrink-0" />
+      <div className="flex flex-col items-start flex-grow gap-2">
+        <div className="h-6 w-48 bg-gray-200 rounded" />
+        <div className="h-4 w-32 bg-gray-200 rounded" />
+      </div>
+    </div>
+  );
 }
 
 export default function DissatisfactionReasonsPage() {
@@ -88,7 +99,11 @@ export default function DissatisfactionReasonsPage() {
         <h1 className="text-3xl font-bold text-center mb-1">What went wrong?</h1>
         <p className="text-md text-center mb-8">Please select all that apply. Your feedback helps us improve.</p>
         {loading ? (
-          <Shimmer />
+          <div className="flex flex-col gap-6 mb-8">
+            {Array.from({ length: 5 }).map((_, idx) => (
+              <ReasonShimmer key={idx} />
+            ))}
+          </div>
         ) : error ? (
           <div className="text-center text-red-600 py-8">{error}</div>
         ) : (
