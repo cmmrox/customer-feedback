@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
-import { v4 as uuidv4 } from "uuid";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Shimmer } from "@/components/ui/shimmer";
 
 interface DissatisfactionReason {
@@ -17,9 +16,17 @@ export default function DissatisfactionReasonsPage() {
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [feedbackId] = useState<string>(() => uuidv4());
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const feedbackId = searchParams.get('feedbackId');
   const inactivityTimeout = useRef<NodeJS.Timeout | null>(null);
+
+  // Redirect to homepage if feedbackId is missing
+  useEffect(() => {
+    if (!feedbackId) {
+      router.push('/');
+    }
+  }, [feedbackId, router]);
 
   useEffect(() => {
     const fetchReasons = async () => {
@@ -55,7 +62,7 @@ export default function DissatisfactionReasonsPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedReason) return;
+    if (!selectedReason || !feedbackId) return;
     setSubmitting(true);
     const res = await fetch("/api/feedback-dissatisfaction", {
       method: "POST",
@@ -69,6 +76,11 @@ export default function DissatisfactionReasonsPage() {
       alert("Failed to submit feedback");
     }
   };
+
+  // Don't render if feedbackId is missing (will redirect)
+  if (!feedbackId) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-[#FFB800] flex flex-col items-center justify-center">

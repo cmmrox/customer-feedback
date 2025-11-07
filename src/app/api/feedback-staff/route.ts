@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '@/lib/db';
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,22 +13,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // First, ensure the feedback record exists
-    let feedback = await prisma.feedback.findUnique({
+    // Verify feedback exists (should already be created from homepage)
+    const feedback = await prisma.feedback.findUnique({
       where: { id: feedbackId }
     });
 
-    // If feedback doesn't exist, create it
     if (!feedback) {
-      feedback = await prisma.feedback.create({
-        data: {
-          id: feedbackId,
-          overallRating: 'GOOD'
-        }
-      });
+      return NextResponse.json(
+        { error: 'Feedback not found. Please start from the homepage.' },
+        { status: 404 }
+      );
     }
 
-    // Create or update the feedback staff entry (no rating)
+    // Create or update the feedback staff entry
     const feedbackStaff = await prisma.feedbackStaff.upsert({
       where: {
         feedbackId_staffId: {

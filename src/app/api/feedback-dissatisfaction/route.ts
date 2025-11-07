@@ -15,17 +15,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid input' }, { status: 400 });
     }
 
-    // Ensure Feedback exists
-    let feedback = await prisma.feedback.findUnique({
+    // Verify feedback exists (should already be created from homepage)
+    const feedback = await prisma.feedback.findUnique({
       where: { id: parsed.data.feedbackId },
     });
+    
     if (!feedback) {
-      feedback = await prisma.feedback.create({
-        data: {
-          id: parsed.data.feedbackId,
-          overallRating: 'NOT_SATISFIED',
-        },
-      });
+      return NextResponse.json(
+        { error: 'Feedback not found. Please start from the homepage.' },
+        { status: 404 }
+      );
     }
 
     await prisma.feedbackReason.create({

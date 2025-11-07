@@ -2,8 +2,7 @@
 
 import Image from 'next/image';
 import { useState, useEffect, useRef } from 'react';
-import { v4 as uuidv4 } from 'uuid';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import React from 'react';
 
 interface StaffMember {
@@ -83,11 +82,19 @@ function StaffCard({ staffMember, isSelected, isSubmitting, onSubmit }: StaffCar
 export default function RateStaffPage() {
   const [staff, setStaff] = useState<StaffMember[]>([]);
   const [selectedStaff, setSelectedStaff] = useState<string | null>(null);
-  const [feedbackId] = useState(() => uuidv4());
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [submittingStaffId, setSubmittingStaffId] = useState<string | null>(null);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const feedbackId = searchParams.get('feedbackId');
   const inactivityTimeout = useRef<NodeJS.Timeout | null>(null);
+
+  // Redirect to homepage if feedbackId is missing
+  useEffect(() => {
+    if (!feedbackId) {
+      router.push('/');
+    }
+  }, [feedbackId, router]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -126,7 +133,7 @@ export default function RateStaffPage() {
   }, [router]);
 
   const handleStaffSelect = async (staffId: string) => {
-    if (submittingStaffId) return; // Prevent double submit
+    if (submittingStaffId || !feedbackId) return; // Prevent double submit or missing feedbackId
     setSubmittingStaffId(staffId);
     setSelectedStaff(staffId);
     try {
@@ -148,6 +155,11 @@ export default function RateStaffPage() {
       setSubmittingStaffId(null); // Allow retry
     }
   };
+
+  // Don't render if feedbackId is missing (will redirect)
+  if (!feedbackId) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-[#FFB800] flex flex-col items-center p-0">
