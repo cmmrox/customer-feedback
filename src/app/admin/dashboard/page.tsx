@@ -1,102 +1,125 @@
 "use client";
 
-import { useAuth } from "@/hooks/useAuth";
-import { useState, useEffect, useCallback } from "react";
-import { StaffBarChart } from "@/components/ui/staff-bar-chart";
-import { StaffSelectionTrendsChart } from "@/components/ui/staff-selection-trends-chart";
-import { DissatisfactionPieChart } from "@/components/ui/dissatisfaction-pie-chart";
-import { DissatisfactionTrendsChart } from "@/components/ui/dissatisfaction-trends-chart";
-import type { StaffSelection } from "@/lib/staff-selection";
+import { useCallback, useEffect, useState } from "react";
+import { Download, FileSpreadsheet, FileText, TrendingDown, TrendingUp } from "lucide-react";
 import ExcelJS from "exceljs";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
-// Utility to get current month in the required format
+import { StaffBarChart } from "@/components/ui/staff-bar-chart";
+import { StaffSelectionTrendsChart } from "@/components/ui/staff-selection-trends-chart";
+import { DissatisfactionPieChart } from "@/components/ui/dissatisfaction-pie-chart";
+import { DissatisfactionTrendsChart } from "@/components/ui/dissatisfaction-trends-chart";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import type { StaffSelection } from "@/lib/staff-selection";
+
 function getCurrentMonth(): string {
   const now = new Date();
-  const month = now.toLocaleString('default', { month: 'long' });
+  const month = now.toLocaleString("default", { month: "long" });
   const year = now.getFullYear();
   return `${month} ${year}`;
 }
 
-// Utility to get last 12 months including current month
 function getLast12Months(): string[] {
   const months: string[] = [];
   const now = new Date();
-  for (let i = 0; i < 12; i++) {
+  for (let i = 0; i < 12; i += 1) {
     const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const month = date.toLocaleString('default', { month: 'long' });
+    const month = date.toLocaleString("default", { month: "long" });
     const year = date.getFullYear();
     months.push(`${month} ${year}`);
   }
-  return months.reverse(); // So oldest is first, latest is last (like your original array)
+  return months.reverse();
 }
 
 const months = getLast12Months();
 
-// Define a type for selection trends data
 interface SelectionTrend {
   month: string;
   [staffName: string]: string | number;
 }
 
+interface TrendData {
+  reason: string;
+  currentCount: number;
+  previousCount: number;
+  trend: "increasing" | "decreasing" | "stable";
+  change: number;
+}
+
+interface DissatisfactionTrend {
+  month: string;
+  count: number;
+}
+
+function SummaryCard({
+  title,
+  description,
+  value,
+  accentClass,
+  loading,
+  error,
+}: {
+  title: string;
+  description: string;
+  value: number;
+  accentClass: string;
+  loading: boolean;
+  error: string | null;
+}) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardDescription>{title}</CardDescription>
+        <CardTitle className={`text-4xl ${accentClass}`}>{loading ? "…" : error ? "0" : value}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <p className="text-sm text-muted-foreground">{error ?? description}</p>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function AdminDashboard() {
-  const { user, logout } = useAuth();
   const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth());
   const [staffSelections, setStaffSelections] = useState<StaffSelection[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // New state for selection trends
   const [selectionTrends, setSelectionTrends] = useState<SelectionTrend[]>([]);
   const [staffNames, setStaffNames] = useState<string[]>([]);
-  const [isTrendsLoading, setIsTrendsLoading] = useState<boolean>(false);
+  const [isTrendsLoading, setIsTrendsLoading] = useState(false);
   const [trendsError, setTrendsError] = useState<string | null>(null);
 
-  // Good count state
-  const [goodCount, setGoodCount] = useState<number>(0);
-  const [isGoodLoading, setIsGoodLoading] = useState<boolean>(false);
+  const [goodCount, setGoodCount] = useState(0);
+  const [isGoodLoading, setIsGoodLoading] = useState(false);
   const [goodError, setGoodError] = useState<string | null>(null);
 
-  // Dissatisfaction summary state
-  const [dissatisfactionCount, setDissatisfactionCount] = useState<number>(0);
+  const [dissatisfactionCount, setDissatisfactionCount] = useState(0);
   const [dissatisfactionPieData, setDissatisfactionPieData] = useState<{ reason: string; value: number }[]>([]);
-  const [isDissatisfactionLoading, setIsDissatisfactionLoading] = useState<boolean>(false);
+  const [isDissatisfactionLoading, setIsDissatisfactionLoading] = useState(false);
   const [dissatisfactionError, setDissatisfactionError] = useState<string | null>(null);
 
-  // Trend data state
-  interface TrendData {
-    reason: string;
-    currentCount: number;
-    previousCount: number;
-    trend: 'increasing' | 'decreasing' | 'stable';
-    change: number;
-  }
   const [trendData, setTrendData] = useState<TrendData[]>([]);
-
-  // Dissatisfaction trends state (6 months)
-  interface DissatisfactionTrend {
-    month: string;
-    count: number;
-  }
   const [dissatisfactionTrends, setDissatisfactionTrends] = useState<DissatisfactionTrend[]>([]);
-  const [isDissatisfactionTrendsLoading, setIsDissatisfactionTrendsLoading] = useState<boolean>(false);
+  const [isDissatisfactionTrendsLoading, setIsDissatisfactionTrendsLoading] = useState(false);
   const [dissatisfactionTrendsError, setDissatisfactionTrendsError] = useState<string | null>(null);
 
-  // Export states
-  const [isExportingExcel, setIsExportingExcel] = useState<boolean>(false);
-  const [isExportingPDF, setIsExportingPDF] = useState<boolean>(false);
+  const [isExportingExcel, setIsExportingExcel] = useState(false);
+  const [isExportingPDF, setIsExportingPDF] = useState(false);
 
-  // Fetch selection trends
   const fetchSelectionTrends = useCallback(async () => {
     setIsTrendsLoading(true);
     setTrendsError(null);
     try {
       const res = await fetch("/api/staff-selection-trends");
       if (!res.ok) throw new Error("Failed to fetch selection trends");
-      const { data, staffNames } = await res.json();
+      const { data, staffNames: names } = await res.json();
       setSelectionTrends(data);
-      setStaffNames(staffNames);
+      setStaffNames(names);
     } catch {
       setTrendsError("Could not load selection trends");
       setSelectionTrends([]);
@@ -130,7 +153,6 @@ export default function AdminDashboard() {
     fetchStaffSelections();
   }, [selectedMonth]);
 
-  // Fetch good count data
   useEffect(() => {
     async function fetchGoodData() {
       setIsGoodLoading(true);
@@ -151,18 +173,14 @@ export default function AdminDashboard() {
     fetchGoodData();
   }, [selectedMonth]);
 
-  // Fetch dissatisfaction summary and trend comparison data
   useEffect(() => {
     async function fetchDissatisfactionData() {
       setIsDissatisfactionLoading(true);
       setDissatisfactionError(null);
       try {
-        // Fetch comparison data with trends
         const res = await fetch(`/api/dissatisfaction-comparison?month=${encodeURIComponent(selectedMonth)}`);
         if (!res.ok) throw new Error("Failed to fetch dissatisfaction data");
         const { totalCount, currentMonth, trends } = await res.json();
-
-        // Use totalCount from API (includes all NOT_SATISFIED feedbacks, not just those with reasons)
         setDissatisfactionCount(totalCount);
         setDissatisfactionPieData(currentMonth);
         setTrendData(trends);
@@ -179,7 +197,6 @@ export default function AdminDashboard() {
     fetchDissatisfactionData();
   }, [selectedMonth]);
 
-  // Fetch dissatisfaction trends (6 months)
   useEffect(() => {
     async function fetchDissatisfactionTrends() {
       setIsDissatisfactionTrendsLoading(true);
@@ -200,46 +217,26 @@ export default function AdminDashboard() {
     fetchDissatisfactionTrends();
   }, []);
 
-  /**
-   * Export staffSelections as Excel file
-   */
   const handleExportExcel = async (): Promise<void> => {
     setIsExportingExcel(true);
     try {
       if (!staffSelections.length) return;
-      
-      // Create a new workbook and worksheet
+
       const workbook = new ExcelJS.Workbook();
       const worksheet = workbook.addWorksheet("Staff Selections");
-      
-      // Add headers
       worksheet.columns = [
-        { header: "Staff Name", key: "name", width: 20 },
-        { header: "Times Selected", key: "count", width: 15 }
+        { header: "Staff Name", key: "name", width: 28 },
+        { header: "Times Selected", key: "count", width: 18 },
       ];
-      
-      // Add data
+
       staffSelections.forEach((staff) => {
-        worksheet.addRow({
-          name: staff.name,
-          count: staff.count
-        });
+        worksheet.addRow({ name: staff.name, count: staff.count });
       });
-      
-      // Style the header row
+
       worksheet.getRow(1).font = { bold: true };
-      worksheet.getRow(1).fill = {
-        type: 'pattern',
-        pattern: 'solid',
-        fgColor: { argb: 'FFE0E0E0' }
-      };
-      
-      // Generate the Excel file
       const buffer = await workbook.xlsx.writeBuffer();
-      
-      // Create blob and trigger download
-      const blob = new Blob([buffer], { 
-        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" 
+      const blob = new Blob([buffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       });
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
@@ -257,9 +254,6 @@ export default function AdminDashboard() {
     }
   };
 
-  /**
-   * Export staffSelections as PDF file
-   */
   const handleExportPDF = async (): Promise<void> => {
     setIsExportingPDF(true);
     try {
@@ -273,8 +267,8 @@ export default function AdminDashboard() {
         body: tableData,
         startY: 26,
         theme: "grid",
-        headStyles: { fillColor: [30, 64, 175] },
-        styles: { fontSize: 12 },
+        headStyles: { fillColor: [24, 24, 27] },
+        styles: { fontSize: 11 },
       });
       doc.save(`staff-selections-${selectedMonth.replace(/\s/g, "-")}.pdf`);
     } catch (err) {
@@ -286,265 +280,213 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <nav className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <h1 className="text-xl font-semibold text-gray-900">Admin Dashboard</h1>
-            </div>
-            <div className="flex items-center">
-              <span className="text-gray-700 mr-4">
-                Welcome, {user?.username}
-              </span>
-              <button
-                onClick={logout}
-                className="bg-red-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-red-700"
-              >
-                Logout
-              </button>
-            </div>
+    <div className="space-y-6">
+      <Card>
+        <CardHeader className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+          <div>
+            <CardTitle>Monthly overview</CardTitle>
+            <CardDescription>Select a reporting month and export the staff selection report.</CardDescription>
           </div>
-        </div>
-      </nav>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="min-w-52">
+              <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select month" />
+                </SelectTrigger>
+                <SelectContent>
+                  {months.map((month) => (
+                    <SelectItem key={month} value={month}>
+                      {month}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button variant="outline" onClick={handleExportExcel} disabled={isExportingExcel || isLoading}>
+              <FileSpreadsheet className="mr-2 size-4" />
+              {isExportingExcel ? "Exporting..." : "Export Excel"}
+            </Button>
+            <Button onClick={handleExportPDF} disabled={isExportingPDF || isLoading}>
+              <FileText className="mr-2 size-4" />
+              {isExportingPDF ? "Exporting..." : "Export PDF"}
+            </Button>
+          </div>
+        </CardHeader>
+      </Card>
 
-      {/* Header Controls */}
-      <div className="max-w-7xl mx-auto mt-6 px-4 py-4 bg-white rounded-lg shadow flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div className="flex flex-col md:flex-row gap-4 md:items-center">
-          <div className="flex flex-col">
-            <label htmlFor="month" className="text-sm font-medium text-gray-700 mb-1">Select Month:</label>
-            <select
-              id="month"
-              className="border rounded px-3 py-2 text-sm text-gray-900 bg-white"
-              value={selectedMonth}
-              onChange={e => setSelectedMonth(e.target.value)}
-            >
-              {months.map(month => (
-                <option key={month} value={month}>{month}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-        <div className="flex gap-2 self-end md:self-auto">
-          <button
-            className="bg-green-600 text-white px-5 py-2 rounded-md text-sm font-medium hover:bg-green-700 flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
-            onClick={handleExportExcel}
-            disabled={isExportingExcel || isLoading}
-          >
-            <span className="material-icons text-base">file_download</span>
-            {isExportingExcel ? "Exporting..." : "Export Excel"}
-          </button>
-          <button
-            className="bg-red-600 text-white px-5 py-2 rounded-md text-sm font-medium hover:bg-red-700 flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
-            onClick={handleExportPDF}
-            disabled={isExportingPDF || isLoading}
-          >
-            <span className="material-icons text-base">picture_as_pdf</span>
-            {isExportingPDF ? "Exporting..." : "Export PDF"}
-          </button>
-        </div>
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <SummaryCard
+          title='Monthly "Good" Count'
+          description={`Total positive feedback received in ${selectedMonth}.`}
+          value={goodCount}
+          accentClass="text-emerald-600"
+          loading={isGoodLoading}
+          error={goodError}
+        />
+        <SummaryCard
+          title='Monthly "Bad" Count'
+          description={`Total negative feedback received in ${selectedMonth}.`}
+          value={dissatisfactionCount}
+          accentClass="text-rose-600"
+          loading={isDissatisfactionLoading}
+          error={dissatisfactionError}
+        />
+        <Card>
+          <CardHeader>
+            <CardDescription>Current month export state</CardDescription>
+            <CardTitle className="text-2xl">{selectedMonth}</CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm text-muted-foreground">
+            Export the current month as Excel or PDF after reviewing the dashboard data.
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardDescription>Quick actions</CardDescription>
+            <CardTitle className="text-2xl">Reports</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm text-muted-foreground">
+            <div className="flex items-center gap-2"><Download className="size-4" /> PDF and Excel exports ready</div>
+            <div className="flex items-center gap-2"><TrendingUp className="size-4" /> Monitor monthly staff trends</div>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Feedback Summary Cards */}
-      <div className="max-w-7xl mx-auto mt-8 px-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
-          {/* Monthly "Good" Count */}
-          <div className="bg-white rounded-lg shadow p-6 flex flex-1 min-h-[260px] items-center justify-center">
-            <div className="flex flex-col items-center justify-center w-full h-full">
-              <div className="text-md font-semibold text-green-700 mb-2 text-center">Monthly &quot;Good&quot; Count</div>
-              {isGoodLoading ? (
-                <div className="text-center py-8 text-gray-500">Loading...</div>
-              ) : goodError ? (
-                <div className="text-center py-8 text-red-600">{goodError}</div>
-              ) : (
-                <div className="text-6xl font-extrabold text-green-600 mb-2 text-center">{goodCount}</div>
-              )}
-              <div className="text-xs text-gray-500 text-center">
-                Total &quot;Good&quot; feedback received in {selectedMonth}.
-              </div>
-            </div>
-          </div>
-          {/* Monthly "Bad" Count */}
-          <div className="bg-white rounded-lg shadow p-6 flex flex-1 min-h-[260px] items-center justify-center">
-            <div className="flex flex-col items-center justify-center w-full h-full">
-              <div className="text-md font-semibold text-red-700 mb-2 text-center">Monthly &quot;Bad&quot; Count</div>
-              {isDissatisfactionLoading ? (
-                <div className="text-center py-8 text-gray-500">Loading...</div>
-              ) : dissatisfactionError ? (
-                <div className="text-center py-8 text-red-600">{dissatisfactionError}</div>
-              ) : (
-                <div className="text-6xl font-extrabold text-red-600 mb-2 text-center">{dissatisfactionCount}</div>
-              )}
-              <div className="text-xs text-gray-500 text-center">
-                Total &quot;Bad&quot; feedback received in {selectedMonth}.
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Staff Member Selections */}
-      <div className="max-w-7xl mx-auto mt-8 px-4">
-        <div className="bg-white rounded-lg shadow p-6 flex flex-col">
-          <h3 className="text-lg font-semibold mb-4 text-blue-700">Staff Member Selections</h3>
-          {isLoading ? (
-            <div className="text-center py-8 text-gray-500">Loading...</div>
-          ) : error ? (
-            <div className="text-center py-8 text-red-600">{error}</div>
-          ) : staffSelections.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">No data for this month.</div>
-          ) : (
-            <table className="min-w-full text-sm mb-4">
-              <thead>
-                <tr className="bg-gray-50">
-                  <th className="px-4 py-2 text-left text-gray-800">STAFF NAME</th>
-                  <th className="px-4 py-2 text-left text-gray-800">TIMES SELECTED</th>
-                </tr>
-              </thead>
-              <tbody>
-                {staffSelections.map((staff) => (
-                  <tr key={staff.id} className="border-b">
-                    <td className="px-4 py-2 text-gray-700">{staff.name}</td>
-                    <td className="px-4 py-2 text-gray-700">{staff.count}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-      </div>
-
-      {/* Staff Comparison Chart */}
-      <div className="max-w-7xl mx-auto mt-8 px-4">
-        <div className="bg-white rounded-lg shadow p-6 flex flex-col">
-          <h3 className="text-lg font-semibold mb-4 text-blue-700">Staff Comparison (Selections)</h3>
-          <div className="flex-1 flex items-center justify-center bg-gray-100 rounded-lg min-h-[220px]">
-            <StaffBarChart data={staffSelections} />
-          </div>
-          <div className="text-xs text-gray-500 mt-2 text-center">
-            Comparison of total times each staff member was selected by customers this month.
-          </div>
-        </div>
-      </div>
-
-      {/* Selection Trends Over Time */}
-      <div className="max-w-7xl mx-auto mt-8 px-4">
-        <div className="bg-white rounded-lg shadow p-6 flex flex-col">
-          <h3 className="text-lg font-semibold mb-4 text-blue-700">Selection Trends Over Time (Last 6 Months)</h3>
-          <div className="bg-gray-100 rounded-lg flex items-center justify-center min-h-[260px] mb-2">
-            {isTrendsLoading ? (
-              <div className="text-center py-8 text-gray-500">Loading...</div>
-            ) : trendsError ? (
-              <div className="text-center py-8 text-red-600">{trendsError}</div>
+      <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+        <Card>
+          <CardHeader>
+            <CardTitle>Staff member selections</CardTitle>
+            <CardDescription>Selection totals for the currently selected month.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="py-12 text-center text-sm text-muted-foreground">Loading staff selections…</div>
+            ) : error ? (
+              <div className="py-12 text-center text-sm text-destructive">{error}</div>
+            ) : staffSelections.length === 0 ? (
+              <div className="py-12 text-center text-sm text-muted-foreground">No data for this month.</div>
             ) : (
-              <StaffSelectionTrendsChart data={selectionTrends} staffNames={staffNames} />
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Staff name</TableHead>
+                    <TableHead className="text-right">Times selected</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {staffSelections.map((staff) => (
+                    <TableRow key={staff.id}>
+                      <TableCell className="font-medium">{staff.name}</TableCell>
+                      <TableCell className="text-right">{staff.count}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             )}
-          </div>
-          <div className="text-xs text-gray-500 mt-1 text-center">
-            Graphical representation of staff selection trends over the past few months.
-          </div>
-        </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Recurring issues analysis</CardTitle>
+            <CardDescription>Compare dissatisfaction reasons against the previous month.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {isDissatisfactionLoading ? (
+              <div className="py-12 text-center text-sm text-muted-foreground">Loading issue trends…</div>
+            ) : dissatisfactionError ? (
+              <div className="py-12 text-center text-sm text-destructive">{dissatisfactionError}</div>
+            ) : trendData.length === 0 ? (
+              <div className="py-12 text-center text-sm text-muted-foreground">No data available for this month.</div>
+            ) : (
+              trendData.map((item) => {
+                const positive = item.trend === "increasing";
+                const negative = item.trend === "decreasing";
+                return (
+                  <div key={item.reason} className="rounded-lg border p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="font-medium">{item.reason}</p>
+                        <p className="text-sm text-muted-foreground">{item.currentCount} reports this month</p>
+                      </div>
+                      <div className={`flex items-center gap-1 text-sm font-medium ${positive ? "text-rose-600" : negative ? "text-emerald-600" : "text-muted-foreground"}`}>
+                        {positive ? <TrendingUp className="size-4" /> : negative ? <TrendingDown className="size-4" /> : null}
+                        {item.trend === "stable" ? "Stable" : `${item.change > 0 ? "+" : ""}${item.change}`}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Dissatisfaction Reports Section */}
-      <div className="max-w-7xl mx-auto mt-10 px-4">
-        <h2 className="text-2xl font-bold mb-6 text-gray-900">Dissatisfaction Reports</h2>
-        
-        {/* Dissatisfaction by Reason Pie Chart */}
-        <div className="bg-white rounded-lg shadow p-6 flex flex-col items-center min-h-[260px] mb-8">
-          <h3 className="text-lg font-semibold text-red-700 mb-4">Dissatisfaction by Reason</h3>
-          <div className="flex-1 flex items-center justify-center w-full bg-gray-100 rounded-lg h-64">
+      <div className="grid gap-6 xl:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Staff comparison</CardTitle>
+            <CardDescription>Compare how often staff were selected this month.</CardDescription>
+          </CardHeader>
+          <CardContent className="h-[300px]">
+            {isLoading ? (
+              <div className="flex h-full items-center justify-center text-sm text-muted-foreground">Loading chart…</div>
+            ) : (
+              <StaffBarChart data={staffSelections} />
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Dissatisfaction by reason</CardTitle>
+            <CardDescription>Breakdown of negative feedback reasons for the selected month.</CardDescription>
+          </CardHeader>
+          <CardContent className="h-[300px]">
             {isDissatisfactionLoading ? (
-              <div className="text-center py-8 text-gray-500">Loading...</div>
+              <div className="flex h-full items-center justify-center text-sm text-muted-foreground">Loading chart…</div>
             ) : dissatisfactionError ? (
-              <div className="text-center py-8 text-red-600">{dissatisfactionError}</div>
+              <div className="flex h-full items-center justify-center text-sm text-destructive">{dissatisfactionError}</div>
             ) : (
               <DissatisfactionPieChart data={dissatisfactionPieData} />
             )}
-          </div>
-          <div className="text-xs text-gray-500 mt-2 text-center">
-            Breakdown of &quot;Bad&quot; feedback by common reason categories.
-          </div>
-        </div>
+          </CardContent>
+        </Card>
+      </div>
 
-        {/* 6-Month Dissatisfaction Trends */}
-        <div className="bg-white rounded-lg shadow p-6 flex flex-col mb-8">
-          <h3 className="text-lg font-semibold mb-4 text-red-700">Dissatisfaction Trends Over Time (Last 6 Months)</h3>
-          <div className="bg-gray-100 rounded-lg flex items-center justify-center min-h-[260px] mb-2">
+      <div className="grid gap-6 xl:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Selection trends over time</CardTitle>
+            <CardDescription>Last several months of staff selection activity.</CardDescription>
+          </CardHeader>
+          <CardContent className="h-[360px]">
+            {isTrendsLoading ? (
+              <div className="flex h-full items-center justify-center text-sm text-muted-foreground">Loading chart…</div>
+            ) : trendsError ? (
+              <div className="flex h-full items-center justify-center text-sm text-destructive">{trendsError}</div>
+            ) : (
+              <StaffSelectionTrendsChart data={selectionTrends} staffNames={staffNames} />
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Dissatisfaction trends</CardTitle>
+            <CardDescription>Last 6 months of negative feedback counts.</CardDescription>
+          </CardHeader>
+          <CardContent className="h-[360px]">
             {isDissatisfactionTrendsLoading ? (
-              <div className="text-center py-8 text-gray-500">Loading...</div>
+              <div className="flex h-full items-center justify-center text-sm text-muted-foreground">Loading chart…</div>
             ) : dissatisfactionTrendsError ? (
-              <div className="text-center py-8 text-red-600">{dissatisfactionTrendsError}</div>
+              <div className="flex h-full items-center justify-center text-sm text-destructive">{dissatisfactionTrendsError}</div>
             ) : (
               <DissatisfactionTrendsChart data={dissatisfactionTrends} />
             )}
-          </div>
-          <div className="text-xs text-gray-500 mt-1 text-center">
-            Trend of &quot;Bad&quot; feedback over the past 6 months.
-          </div>
-        </div>
-
-        {/* Recurring Issues Analysis */}
-        <div className="bg-white rounded-xl shadow-md p-6">
-          <h3 className="text-lg font-semibold text-red-600 mb-4">Recurring Issues Analysis</h3>
-          {isDissatisfactionLoading ? (
-            <div className="text-center py-8 text-gray-500">Loading...</div>
-          ) : dissatisfactionError ? (
-            <div className="text-center py-8 text-red-600">{dissatisfactionError}</div>
-          ) : trendData.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">No data available for this month.</div>
-          ) : (
-            <table className="min-w-full text-sm border-separate border-spacing-0">
-              <thead>
-                <tr className="bg-gray-50">
-                  <th className="px-4 py-2 text-left text-gray-700 font-semibold tracking-wide text-xs">ISSUE/REASON CATEGORY</th>
-                  <th className="px-4 py-2 text-left text-gray-700 font-semibold tracking-wide text-xs">FREQUENCY (THIS MONTH)</th>
-                  <th className="px-4 py-2 text-left text-gray-700 font-semibold tracking-wide text-xs">TREND (VS. LAST MONTH)</th>
-                </tr>
-              </thead>
-              <tbody>
-                {trendData.map((item: TrendData, idx: number) => {
-                  // Determine trend display
-                  let trendIcon: string;
-                  let trendText: string;
-                  let trendColor: string;
-
-                  if (item.trend === 'increasing') {
-                    trendIcon = 'arrow_upward';
-                    trendText = `Increasing (+${item.change})`;
-                    trendColor = 'text-red-600';
-                  } else if (item.trend === 'decreasing') {
-                    trendIcon = 'arrow_downward';
-                    trendText = `Decreasing (${item.change})`;
-                    trendColor = 'text-green-600';
-                  } else {
-                    trendIcon = 'horizontal_rule';
-                    trendText = 'Stable';
-                    trendColor = 'text-gray-600';
-                  }
-
-                  return (
-                    <tr key={item.reason} className={idx !== trendData.length - 1 ? 'border-b' : ''}>
-                      <td className="px-4 py-3 text-gray-900 whitespace-nowrap font-medium">{item.reason}</td>
-                      <td className="px-4 py-3 text-gray-900 whitespace-nowrap">{item.currentCount}</td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <span className={`${trendColor} flex items-center gap-1 font-medium`}>
-                          <span className="material-icons text-base align-middle">{trendIcon}</span>
-                          <span>{trendText}</span>
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          )}
-        </div>
+          </CardContent>
+        </Card>
       </div>
-      {/* Footer */}
-      <footer className="w-full bg-white border-t mt-12 py-6 px-4 flex items-center justify-center text-xs text-gray-500 rounded-t-lg shadow-inner" style={{ minHeight: '56px' }}>
-        <span>&copy; {new Date().getFullYear()} Customer Feedback Dashboard. All rights reserved.</span>
-      </footer>
     </div>
   );
-} 
+}
