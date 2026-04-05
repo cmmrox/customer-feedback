@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Download, FileSpreadsheet, FileText, TrendingDown, TrendingUp } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, FileSpreadsheet, FileText } from "lucide-react";
 import ExcelJS from "exceljs";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -10,6 +10,7 @@ import { StaffBarChart } from "@/components/ui/staff-bar-chart";
 import { StaffSelectionTrendsChart } from "@/components/ui/staff-selection-trends-chart";
 import { DissatisfactionPieChart } from "@/components/ui/dissatisfaction-pie-chart";
 import { DissatisfactionTrendsChart } from "@/components/ui/dissatisfaction-trends-chart";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -59,26 +60,52 @@ function SummaryCard({
   title,
   description,
   value,
-  accentClass,
+  accentClasses,
   loading,
   error,
 }: {
   title: string;
   description: string;
-  value: number;
-  accentClass: string;
+  value: number | string;
+  accentClasses: string;
   loading: boolean;
   error: string | null;
 }) {
   return (
-    <Card>
-      <CardHeader>
-        <CardDescription>{title}</CardDescription>
-        <CardTitle className={`text-4xl ${accentClass}`}>{loading ? "…" : error ? "0" : value}</CardTitle>
+    <Card className="border-slate-200 shadow-sm">
+      <CardHeader className="space-y-3 pb-3">
+        <CardDescription className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
+          {title}
+        </CardDescription>
+        <CardTitle className={`text-4xl font-black tracking-tight ${accentClasses}`}>
+          {loading ? "…" : error ? "0" : value}
+        </CardTitle>
       </CardHeader>
       <CardContent>
-        <p className="text-sm text-muted-foreground">{error ?? description}</p>
+        <p className="text-sm leading-6 text-slate-600">{error ?? description}</p>
       </CardContent>
+    </Card>
+  );
+}
+
+function SectionCard({
+  title,
+  description,
+  children,
+  className = "",
+}: {
+  title: string;
+  description: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <Card className={`border-slate-200 shadow-sm ${className}`}>
+      <CardHeader className="space-y-1.5 pb-4">
+        <CardTitle className="text-xl font-semibold text-slate-900">{title}</CardTitle>
+        <CardDescription className="text-sm text-slate-500">{description}</CardDescription>
+      </CardHeader>
+      <CardContent>{children}</CardContent>
     </Card>
   );
 }
@@ -221,18 +248,15 @@ export default function AdminDashboard() {
     setIsExportingExcel(true);
     try {
       if (!staffSelections.length) return;
-
       const workbook = new ExcelJS.Workbook();
       const worksheet = workbook.addWorksheet("Staff Selections");
       worksheet.columns = [
         { header: "Staff Name", key: "name", width: 28 },
         { header: "Times Selected", key: "count", width: 18 },
       ];
-
       staffSelections.forEach((staff) => {
         worksheet.addRow({ name: staff.name, count: staff.count });
       });
-
       worksheet.getRow(1).font = { bold: true };
       const buffer = await workbook.xlsx.writeBuffer();
       const blob = new Blob([buffer], {
@@ -281,32 +305,35 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-          <div>
-            <CardTitle>Monthly overview</CardTitle>
-            <CardDescription>Select a reporting month and export the staff selection report.</CardDescription>
+      <Card className="border-slate-200 bg-white shadow-sm">
+        <CardHeader className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div className="space-y-2">
+            <Badge variant="secondary" className="w-fit bg-slate-100 text-slate-600">Dashboard Controls</Badge>
+            <div>
+              <CardTitle className="text-2xl font-bold text-slate-900">Monthly overview</CardTitle>
+              <CardDescription className="mt-1 text-sm text-slate-500">
+                Select a reporting month and export the staff selection report.
+              </CardDescription>
+            </div>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <div className="min-w-52">
               <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                <SelectTrigger>
+                <SelectTrigger className="h-11 border-slate-200 bg-white text-slate-700 shadow-sm">
                   <SelectValue placeholder="Select month" />
                 </SelectTrigger>
                 <SelectContent>
                   {months.map((month) => (
-                    <SelectItem key={month} value={month}>
-                      {month}
-                    </SelectItem>
+                    <SelectItem key={month} value={month}>{month}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-            <Button variant="outline" onClick={handleExportExcel} disabled={isExportingExcel || isLoading}>
+            <Button variant="outline" className="h-11 border-slate-200 bg-white text-slate-700 shadow-sm" onClick={handleExportExcel} disabled={isExportingExcel || isLoading}>
               <FileSpreadsheet className="mr-2 size-4" />
               {isExportingExcel ? "Exporting..." : "Export Excel"}
             </Button>
-            <Button onClick={handleExportPDF} disabled={isExportingPDF || isLoading}>
+            <Button className="h-11 bg-slate-900 text-white shadow-sm hover:bg-slate-800" onClick={handleExportPDF} disabled={isExportingPDF || isLoading}>
               <FileText className="mr-2 size-4" />
               {isExportingPDF ? "Exporting..." : "Export PDF"}
             </Button>
@@ -314,178 +341,124 @@ export default function AdminDashboard() {
         </CardHeader>
       </Card>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <SummaryCard
-          title='Monthly "Good" Count'
-          description={`Total positive feedback received in ${selectedMonth}.`}
-          value={goodCount}
-          accentClass="text-emerald-600"
-          loading={isGoodLoading}
-          error={goodError}
-        />
-        <SummaryCard
-          title='Monthly "Bad" Count'
-          description={`Total negative feedback received in ${selectedMonth}.`}
-          value={dissatisfactionCount}
-          accentClass="text-rose-600"
-          loading={isDissatisfactionLoading}
-          error={dissatisfactionError}
-        />
-        <Card>
-          <CardHeader>
-            <CardDescription>Current month export state</CardDescription>
-            <CardTitle className="text-2xl">{selectedMonth}</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
-            Export the current month as Excel or PDF after reviewing the dashboard data.
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardDescription>Quick actions</CardDescription>
-            <CardTitle className="text-2xl">Reports</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm text-muted-foreground">
-            <div className="flex items-center gap-2"><Download className="size-4" /> PDF and Excel exports ready</div>
-            <div className="flex items-center gap-2"><TrendingUp className="size-4" /> Monitor monthly staff trends</div>
-          </CardContent>
-        </Card>
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-2">
+        <SummaryCard title="Monthly Good" description={`Positive feedback in ${selectedMonth}.`} value={goodCount} accentClasses="text-emerald-600" loading={isGoodLoading} error={goodError} />
+        <SummaryCard title="Monthly Bad" description={`Negative feedback in ${selectedMonth}.`} value={dissatisfactionCount} accentClasses="text-rose-600" loading={isDissatisfactionLoading} error={dissatisfactionError} />
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-        <Card>
-          <CardHeader>
-            <CardTitle>Staff member selections</CardTitle>
-            <CardDescription>Selection totals for the currently selected month.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <div className="py-12 text-center text-sm text-muted-foreground">Loading staff selections…</div>
-            ) : error ? (
-              <div className="py-12 text-center text-sm text-destructive">{error}</div>
-            ) : staffSelections.length === 0 ? (
-              <div className="py-12 text-center text-sm text-muted-foreground">No data for this month.</div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Staff name</TableHead>
-                    <TableHead className="text-right">Times selected</TableHead>
+        <SectionCard title="Staff member selections" description="Selection totals for the selected month.">
+          {isLoading ? (
+            <div className="py-12 text-center text-sm text-slate-500">Loading staff selections…</div>
+          ) : error ? (
+            <div className="py-12 text-center text-sm text-rose-600">{error}</div>
+          ) : staffSelections.length === 0 ? (
+            <div className="py-12 text-center text-sm text-slate-500">No data for this month.</div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow className="border-slate-200 hover:bg-transparent">
+                  <TableHead className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">#</TableHead>
+                  <TableHead className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Staff name</TableHead>
+                  <TableHead className="text-right text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Times selected</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {staffSelections.map((staff, index) => (
+                  <TableRow key={staff.id} className="border-slate-100 hover:bg-slate-50/70">
+                    <TableCell className="font-medium text-slate-400">{index + 1}</TableCell>
+                    <TableCell className="font-medium text-slate-900">{staff.name}</TableCell>
+                    <TableCell className="text-right font-semibold text-slate-700">{staff.count}</TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {staffSelections.map((staff) => (
-                    <TableRow key={staff.id}>
-                      <TableCell className="font-medium">{staff.name}</TableCell>
-                      <TableCell className="text-right">{staff.count}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </SectionCard>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Recurring issues analysis</CardTitle>
-            <CardDescription>Compare dissatisfaction reasons against the previous month.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
+        <SectionCard title="Recurring issues analysis" description="Compare dissatisfaction reasons against the previous month.">
+          <div className="space-y-3">
             {isDissatisfactionLoading ? (
-              <div className="py-12 text-center text-sm text-muted-foreground">Loading issue trends…</div>
+              <div className="py-12 text-center text-sm text-slate-500">Loading issue trends…</div>
             ) : dissatisfactionError ? (
-              <div className="py-12 text-center text-sm text-destructive">{dissatisfactionError}</div>
+              <div className="py-12 text-center text-sm text-rose-600">{dissatisfactionError}</div>
             ) : trendData.length === 0 ? (
-              <div className="py-12 text-center text-sm text-muted-foreground">No data available for this month.</div>
+              <div className="py-12 text-center text-sm text-slate-500">No data available for this month.</div>
             ) : (
               trendData.map((item) => {
                 const positive = item.trend === "increasing";
                 const negative = item.trend === "decreasing";
                 return (
-                  <div key={item.reason} className="rounded-lg border p-4">
+                  <div key={item.reason} className="rounded-xl border border-slate-200 bg-slate-50/80 p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="font-medium">{item.reason}</p>
-                        <p className="text-sm text-muted-foreground">{item.currentCount} reports this month</p>
+                        <p className="font-semibold text-slate-900">{item.reason}</p>
+                        <p className="text-sm text-slate-500">{item.currentCount} reports this month</p>
                       </div>
-                      <div className={`flex items-center gap-1 text-sm font-medium ${positive ? "text-rose-600" : negative ? "text-emerald-600" : "text-muted-foreground"}`}>
-                        {positive ? <TrendingUp className="size-4" /> : negative ? <TrendingDown className="size-4" /> : null}
+                      <Badge
+                        variant="secondary"
+                        className={positive ? "bg-rose-100 text-rose-700" : negative ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600"}
+                      >
+                        {positive ? <ArrowUpRight className="mr-1 size-3.5" /> : negative ? <ArrowDownRight className="mr-1 size-3.5" /> : null}
                         {item.trend === "stable" ? "Stable" : `${item.change > 0 ? "+" : ""}${item.change}`}
-                      </div>
+                      </Badge>
                     </div>
                   </div>
                 );
               })
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </SectionCard>
       </div>
 
       <div className="grid gap-6 xl:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Staff comparison</CardTitle>
-            <CardDescription>Compare how often staff were selected this month.</CardDescription>
-          </CardHeader>
-          <CardContent className="h-[300px]">
+        <SectionCard title="Staff comparison" description="Compare how often staff were selected this month.">
+          <div className="h-[300px] rounded-2xl border border-slate-100 bg-slate-50/60 p-4">
             {isLoading ? (
-              <div className="flex h-full items-center justify-center text-sm text-muted-foreground">Loading chart…</div>
+              <div className="flex h-full items-center justify-center text-sm text-slate-500">Loading chart…</div>
             ) : (
               <StaffBarChart data={staffSelections} />
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </SectionCard>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Dissatisfaction by reason</CardTitle>
-            <CardDescription>Breakdown of negative feedback reasons for the selected month.</CardDescription>
-          </CardHeader>
-          <CardContent className="h-[300px]">
+        <SectionCard title="Dissatisfaction by reason" description="Breakdown of negative feedback reasons for the selected month.">
+          <div className="h-[300px] rounded-2xl border border-slate-100 bg-slate-50/60 p-4">
             {isDissatisfactionLoading ? (
-              <div className="flex h-full items-center justify-center text-sm text-muted-foreground">Loading chart…</div>
+              <div className="flex h-full items-center justify-center text-sm text-slate-500">Loading chart…</div>
             ) : dissatisfactionError ? (
-              <div className="flex h-full items-center justify-center text-sm text-destructive">{dissatisfactionError}</div>
+              <div className="flex h-full items-center justify-center text-sm text-rose-600">{dissatisfactionError}</div>
             ) : (
               <DissatisfactionPieChart data={dissatisfactionPieData} />
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </SectionCard>
       </div>
 
       <div className="grid gap-6 xl:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Selection trends over time</CardTitle>
-            <CardDescription>Last several months of staff selection activity.</CardDescription>
-          </CardHeader>
-          <CardContent className="h-[360px]">
+        <SectionCard title="Selection trends over time" description="Last several months of staff selection activity.">
+          <div className="h-[360px] rounded-2xl border border-slate-100 bg-slate-50/60 p-4">
             {isTrendsLoading ? (
-              <div className="flex h-full items-center justify-center text-sm text-muted-foreground">Loading chart…</div>
+              <div className="flex h-full items-center justify-center text-sm text-slate-500">Loading chart…</div>
             ) : trendsError ? (
-              <div className="flex h-full items-center justify-center text-sm text-destructive">{trendsError}</div>
+              <div className="flex h-full items-center justify-center text-sm text-rose-600">{trendsError}</div>
             ) : (
               <StaffSelectionTrendsChart data={selectionTrends} staffNames={staffNames} />
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </SectionCard>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Dissatisfaction trends</CardTitle>
-            <CardDescription>Last 6 months of negative feedback counts.</CardDescription>
-          </CardHeader>
-          <CardContent className="h-[360px]">
+        <SectionCard title="Dissatisfaction trends" description="Last 6 months of negative feedback counts.">
+          <div className="h-[360px] rounded-2xl border border-slate-100 bg-slate-50/60 p-4">
             {isDissatisfactionTrendsLoading ? (
-              <div className="flex h-full items-center justify-center text-sm text-muted-foreground">Loading chart…</div>
+              <div className="flex h-full items-center justify-center text-sm text-slate-500">Loading chart…</div>
             ) : dissatisfactionTrendsError ? (
-              <div className="flex h-full items-center justify-center text-sm text-destructive">{dissatisfactionTrendsError}</div>
+              <div className="flex h-full items-center justify-center text-sm text-rose-600">{dissatisfactionTrendsError}</div>
             ) : (
               <DissatisfactionTrendsChart data={dissatisfactionTrends} />
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </SectionCard>
       </div>
     </div>
   );
