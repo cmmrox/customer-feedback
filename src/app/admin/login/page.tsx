@@ -1,4 +1,7 @@
-import { Metadata } from "next";
+import type { Metadata } from "next";
+
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+
 import LoginForm from "./login-form";
 
 export const metadata: Metadata = {
@@ -8,18 +11,16 @@ export const metadata: Metadata = {
 
 export default function LoginPage() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow-lg">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Sign in to your account
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Admin access only
-          </p>
-        </div>
-        <LoginForm />
-      </div>
+    <div className="flex min-h-screen items-center justify-center bg-muted/30 px-4 py-10">
+      <Card className="w-full max-w-md shadow-sm">
+        <CardHeader className="space-y-2 text-center">
+          <CardTitle className="text-3xl">Sign in to your account</CardTitle>
+          <CardDescription>Admin access only</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <LoginForm />
+        </CardContent>
+      </Card>
     </div>
   );
-} 
+}
