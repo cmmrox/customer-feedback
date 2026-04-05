@@ -63,6 +63,7 @@ function SummaryCard({
   accentClasses,
   loading,
   error,
+  tone = "default",
 }: {
   title: string;
   description: string;
@@ -70,19 +71,27 @@ function SummaryCard({
   accentClasses: string;
   loading: boolean;
   error: string | null;
+  tone?: "default" | "good" | "bad";
 }) {
+  const toneClasses =
+    tone === "good"
+      ? "border-emerald-200 bg-gradient-to-br from-emerald-50 to-emerald-100/80"
+      : tone === "bad"
+        ? "border-rose-200 bg-gradient-to-br from-rose-50 to-rose-100/80"
+        : "border-slate-200 bg-white";
+
   return (
-    <Card className="border-slate-200 shadow-sm">
+    <Card className={`${toneClasses} shadow-sm`}>
       <CardHeader className="space-y-3 pb-3">
-        <CardDescription className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
+        <CardDescription className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-600">
           {title}
         </CardDescription>
-        <CardTitle className={`text-4xl font-black tracking-tight ${accentClasses}`}>
+        <CardTitle className={`text-5xl font-black tracking-tight ${accentClasses}`}>
           {loading ? "…" : error ? "0" : value}
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <p className="text-sm leading-6 text-slate-600">{error ?? description}</p>
+        <p className="text-sm leading-6 text-slate-700">{error ?? description}</p>
       </CardContent>
     </Card>
   );
@@ -342,8 +351,8 @@ export default function AdminDashboard() {
       </Card>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-2">
-        <SummaryCard title="Monthly Good" description={`Positive feedback in ${selectedMonth}.`} value={goodCount} accentClasses="text-emerald-600" loading={isGoodLoading} error={goodError} />
-        <SummaryCard title="Monthly Bad" description={`Negative feedback in ${selectedMonth}.`} value={dissatisfactionCount} accentClasses="text-rose-600" loading={isDissatisfactionLoading} error={dissatisfactionError} />
+        <SummaryCard title="Monthly Good" description={`Positive feedback in ${selectedMonth}.`} value={goodCount} accentClasses="text-emerald-700" loading={isGoodLoading} error={goodError} tone="good" />
+        <SummaryCard title="Monthly Bad" description={`Negative feedback in ${selectedMonth}.`} value={dissatisfactionCount} accentClasses="text-rose-700" loading={isDissatisfactionLoading} error={dissatisfactionError} tone="bad" />
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
