@@ -1,8 +1,12 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Suspense } from "react";
+import { useSearchParams } from "next/navigation";
+
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 function ErrorContent() {
   const searchParams = useSearchParams();
@@ -20,33 +24,31 @@ function ErrorContent() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow-lg">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Authentication Error
-          </h2>
-          <div className="mt-2 text-center text-sm text-red-600">
-            {getErrorMessage()}
-          </div>
-          <div className="mt-6 text-center">
-            <Link
-              href="/admin/login"
-              className="font-medium text-indigo-600 hover:text-indigo-500"
-            >
-              Return to login
-            </Link>
-          </div>
-        </div>
-      </div>
+    <div className="flex min-h-screen items-center justify-center bg-muted/30 px-4 py-10">
+      <Card className="w-full max-w-md shadow-sm">
+        <CardHeader className="space-y-2 text-center">
+          <CardTitle className="text-3xl">Authentication error</CardTitle>
+          <CardDescription>There was a problem accessing the admin area.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <Alert variant="destructive">
+            <AlertTitle>Sign-in failed</AlertTitle>
+            <AlertDescription>{getErrorMessage()}</AlertDescription>
+          </Alert>
+
+          <Button asChild className="w-full">
+            <Link href="/admin/login">Return to login</Link>
+          </Button>
+        </CardContent>
+      </Card>
     </div>
   );
 }
 
 export default function AuthError() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center text-sm text-muted-foreground">Loading…</div>}>
       <ErrorContent />
     </Suspense>
   );
-} 
+}

@@ -1,102 +1,161 @@
 "use client";
 
-import { useAuth } from "@/hooks/useAuth";
-import { useState, useEffect, useCallback } from "react";
-import { StaffBarChart } from "@/components/ui/staff-bar-chart";
-import { StaffSelectionTrendsChart } from "@/components/ui/staff-selection-trends-chart";
-import { DissatisfactionPieChart } from "@/components/ui/dissatisfaction-pie-chart";
-import { DissatisfactionTrendsChart } from "@/components/ui/dissatisfaction-trends-chart";
-import type { StaffSelection } from "@/lib/staff-selection";
+import { useCallback, useEffect, useState } from "react";
+import { ArrowDownRight, ArrowUpRight, FileSpreadsheet, FileText } from "lucide-react";
 import ExcelJS from "exceljs";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
-// Utility to get current month in the required format
+import { StaffBarChart } from "@/components/ui/staff-bar-chart";
+import { StaffSelectionTrendsChart } from "@/components/ui/staff-selection-trends-chart";
+import { DissatisfactionPieChart } from "@/components/ui/dissatisfaction-pie-chart";
+import { DissatisfactionTrendsChart } from "@/components/ui/dissatisfaction-trends-chart";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import type { StaffSelection } from "@/lib/staff-selection";
+
 function getCurrentMonth(): string {
   const now = new Date();
-  const month = now.toLocaleString('default', { month: 'long' });
+  const month = now.toLocaleString("default", { month: "long" });
   const year = now.getFullYear();
   return `${month} ${year}`;
 }
 
-// Utility to get last 12 months including current month
 function getLast12Months(): string[] {
   const months: string[] = [];
   const now = new Date();
-  for (let i = 0; i < 12; i++) {
+  for (let i = 0; i < 12; i += 1) {
     const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const month = date.toLocaleString('default', { month: 'long' });
+    const month = date.toLocaleString("default", { month: "long" });
     const year = date.getFullYear();
     months.push(`${month} ${year}`);
   }
-  return months.reverse(); // So oldest is first, latest is last (like your original array)
+  return months.reverse();
 }
 
 const months = getLast12Months();
 
-// Define a type for selection trends data
 interface SelectionTrend {
   month: string;
   [staffName: string]: string | number;
 }
 
+interface TrendData {
+  reason: string;
+  currentCount: number;
+  previousCount: number;
+  trend: "increasing" | "decreasing" | "stable";
+  change: number;
+}
+
+interface DissatisfactionTrend {
+  month: string;
+  count: number;
+}
+
+function SummaryCard({
+  title,
+  description,
+  value,
+  accentClasses,
+  loading,
+  error,
+  tone = "default",
+}: {
+  title: string;
+  description: string;
+  value: number | string;
+  accentClasses: string;
+  loading: boolean;
+  error: string | null;
+  tone?: "default" | "good" | "bad";
+}) {
+  const toneClasses =
+    tone === "good"
+      ? "border-emerald-200 bg-gradient-to-br from-emerald-50 to-emerald-100/80"
+      : tone === "bad"
+        ? "border-rose-200 bg-gradient-to-br from-rose-50 to-rose-100/80"
+        : "border-slate-200 bg-white";
+
+  return (
+    <Card className={`${toneClasses} shadow-sm`}>
+      <CardHeader className="space-y-3 pb-3">
+        <CardDescription className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-600">
+          {title}
+        </CardDescription>
+        <CardTitle className={`text-5xl font-black tracking-tight ${accentClasses}`}>
+          {loading ? "…" : error ? "0" : value}
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <p className="text-sm leading-6 text-slate-700">{error ?? description}</p>
+      </CardContent>
+    </Card>
+  );
+}
+
+function SectionCard({
+  title,
+  description,
+  children,
+  className = "",
+}: {
+  title: string;
+  description: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <Card className={`border-slate-200 shadow-sm ${className}`}>
+      <CardHeader className="space-y-1.5 pb-4">
+        <CardTitle className="text-xl font-semibold text-slate-900">{title}</CardTitle>
+        <CardDescription className="text-sm text-slate-500">{description}</CardDescription>
+      </CardHeader>
+      <CardContent>{children}</CardContent>
+    </Card>
+  );
+}
+
 export default function AdminDashboard() {
-  const { user, logout } = useAuth();
   const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth());
   const [staffSelections, setStaffSelections] = useState<StaffSelection[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // New state for selection trends
   const [selectionTrends, setSelectionTrends] = useState<SelectionTrend[]>([]);
   const [staffNames, setStaffNames] = useState<string[]>([]);
-  const [isTrendsLoading, setIsTrendsLoading] = useState<boolean>(false);
+  const [isTrendsLoading, setIsTrendsLoading] = useState(false);
   const [trendsError, setTrendsError] = useState<string | null>(null);
 
-  // Good count state
-  const [goodCount, setGoodCount] = useState<number>(0);
-  const [isGoodLoading, setIsGoodLoading] = useState<boolean>(false);
+  const [goodCount, setGoodCount] = useState(0);
+  const [isGoodLoading, setIsGoodLoading] = useState(false);
   const [goodError, setGoodError] = useState<string | null>(null);
 
-  // Dissatisfaction summary state
-  const [dissatisfactionCount, setDissatisfactionCount] = useState<number>(0);
+  const [dissatisfactionCount, setDissatisfactionCount] = useState(0);
   const [dissatisfactionPieData, setDissatisfactionPieData] = useState<{ reason: string; value: number }[]>([]);
-  const [isDissatisfactionLoading, setIsDissatisfactionLoading] = useState<boolean>(false);
+  const [isDissatisfactionLoading, setIsDissatisfactionLoading] = useState(false);
   const [dissatisfactionError, setDissatisfactionError] = useState<string | null>(null);
 
-  // Trend data state
-  interface TrendData {
-    reason: string;
-    currentCount: number;
-    previousCount: number;
-    trend: 'increasing' | 'decreasing' | 'stable';
-    change: number;
-  }
   const [trendData, setTrendData] = useState<TrendData[]>([]);
-
-  // Dissatisfaction trends state (6 months)
-  interface DissatisfactionTrend {
-    month: string;
-    count: number;
-  }
   const [dissatisfactionTrends, setDissatisfactionTrends] = useState<DissatisfactionTrend[]>([]);
-  const [isDissatisfactionTrendsLoading, setIsDissatisfactionTrendsLoading] = useState<boolean>(false);
+  const [isDissatisfactionTrendsLoading, setIsDissatisfactionTrendsLoading] = useState(false);
   const [dissatisfactionTrendsError, setDissatisfactionTrendsError] = useState<string | null>(null);
 
-  // Export states
-  const [isExportingExcel, setIsExportingExcel] = useState<boolean>(false);
-  const [isExportingPDF, setIsExportingPDF] = useState<boolean>(false);
+  const [isExportingExcel, setIsExportingExcel] = useState(false);
+  const [isExportingPDF, setIsExportingPDF] = useState(false);
 
-  // Fetch selection trends
   const fetchSelectionTrends = useCallback(async () => {
     setIsTrendsLoading(true);
     setTrendsError(null);
     try {
       const res = await fetch("/api/staff-selection-trends");
       if (!res.ok) throw new Error("Failed to fetch selection trends");
-      const { data, staffNames } = await res.json();
+      const { data, staffNames: names } = await res.json();
       setSelectionTrends(data);
-      setStaffNames(staffNames);
+      setStaffNames(names);
     } catch {
       setTrendsError("Could not load selection trends");
       setSelectionTrends([]);
@@ -130,7 +189,6 @@ export default function AdminDashboard() {
     fetchStaffSelections();
   }, [selectedMonth]);
 
-  // Fetch good count data
   useEffect(() => {
     async function fetchGoodData() {
       setIsGoodLoading(true);
@@ -151,18 +209,14 @@ export default function AdminDashboard() {
     fetchGoodData();
   }, [selectedMonth]);
 
-  // Fetch dissatisfaction summary and trend comparison data
   useEffect(() => {
     async function fetchDissatisfactionData() {
       setIsDissatisfactionLoading(true);
       setDissatisfactionError(null);
       try {
-        // Fetch comparison data with trends
         const res = await fetch(`/api/dissatisfaction-comparison?month=${encodeURIComponent(selectedMonth)}`);
         if (!res.ok) throw new Error("Failed to fetch dissatisfaction data");
         const { totalCount, currentMonth, trends } = await res.json();
-
-        // Use totalCount from API (includes all NOT_SATISFIED feedbacks, not just those with reasons)
         setDissatisfactionCount(totalCount);
         setDissatisfactionPieData(currentMonth);
         setTrendData(trends);
@@ -179,7 +233,6 @@ export default function AdminDashboard() {
     fetchDissatisfactionData();
   }, [selectedMonth]);
 
-  // Fetch dissatisfaction trends (6 months)
   useEffect(() => {
     async function fetchDissatisfactionTrends() {
       setIsDissatisfactionTrendsLoading(true);
@@ -200,46 +253,23 @@ export default function AdminDashboard() {
     fetchDissatisfactionTrends();
   }, []);
 
-  /**
-   * Export staffSelections as Excel file
-   */
   const handleExportExcel = async (): Promise<void> => {
     setIsExportingExcel(true);
     try {
       if (!staffSelections.length) return;
-      
-      // Create a new workbook and worksheet
       const workbook = new ExcelJS.Workbook();
       const worksheet = workbook.addWorksheet("Staff Selections");
-      
-      // Add headers
       worksheet.columns = [
-        { header: "Staff Name", key: "name", width: 20 },
-        { header: "Times Selected", key: "count", width: 15 }
+        { header: "Staff Name", key: "name", width: 28 },
+        { header: "Times Selected", key: "count", width: 18 },
       ];
-      
-      // Add data
       staffSelections.forEach((staff) => {
-        worksheet.addRow({
-          name: staff.name,
-          count: staff.count
-        });
+        worksheet.addRow({ name: staff.name, count: staff.count });
       });
-      
-      // Style the header row
       worksheet.getRow(1).font = { bold: true };
-      worksheet.getRow(1).fill = {
-        type: 'pattern',
-        pattern: 'solid',
-        fgColor: { argb: 'FFE0E0E0' }
-      };
-      
-      // Generate the Excel file
       const buffer = await workbook.xlsx.writeBuffer();
-      
-      // Create blob and trigger download
-      const blob = new Blob([buffer], { 
-        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" 
+      const blob = new Blob([buffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       });
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
@@ -257,9 +287,6 @@ export default function AdminDashboard() {
     }
   };
 
-  /**
-   * Export staffSelections as PDF file
-   */
   const handleExportPDF = async (): Promise<void> => {
     setIsExportingPDF(true);
     try {
@@ -273,8 +300,8 @@ export default function AdminDashboard() {
         body: tableData,
         startY: 26,
         theme: "grid",
-        headStyles: { fillColor: [30, 64, 175] },
-        styles: { fontSize: 12 },
+        headStyles: { fillColor: [24, 24, 27] },
+        styles: { fontSize: 11 },
       });
       doc.save(`staff-selections-${selectedMonth.replace(/\s/g, "-")}.pdf`);
     } catch (err) {
@@ -286,265 +313,162 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <nav className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <h1 className="text-xl font-semibold text-gray-900">Admin Dashboard</h1>
-            </div>
-            <div className="flex items-center">
-              <span className="text-gray-700 mr-4">
-                Welcome, {user?.username}
-              </span>
-              <button
-                onClick={logout}
-                className="bg-red-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-red-700"
-              >
-                Logout
-              </button>
+    <div className="space-y-6">
+      <Card className="border-slate-200 bg-white shadow-sm">
+        <CardHeader className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div className="space-y-2">
+            <Badge variant="secondary" className="w-fit bg-slate-100 text-slate-600">Dashboard Controls</Badge>
+            <div>
+              <CardTitle className="text-2xl font-bold text-slate-900">Monthly overview</CardTitle>
+              <CardDescription className="mt-1 text-sm text-slate-500">
+                Select a reporting month and export the staff selection report.
+              </CardDescription>
             </div>
           </div>
-        </div>
-      </nav>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="min-w-52">
+              <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                <SelectTrigger className="h-11 border-slate-200 bg-white text-slate-700 shadow-sm">
+                  <SelectValue placeholder="Select month" />
+                </SelectTrigger>
+                <SelectContent>
+                  {months.map((month) => (
+                    <SelectItem key={month} value={month}>{month}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button variant="outline" className="h-11 border-slate-200 bg-white text-slate-700 shadow-sm" onClick={handleExportExcel} disabled={isExportingExcel || isLoading}>
+              <FileSpreadsheet className="mr-2 size-4" />
+              {isExportingExcel ? "Exporting..." : "Export Excel"}
+            </Button>
+            <Button className="h-11 bg-slate-900 text-white shadow-sm hover:bg-slate-800" onClick={handleExportPDF} disabled={isExportingPDF || isLoading}>
+              <FileText className="mr-2 size-4" />
+              {isExportingPDF ? "Exporting..." : "Export PDF"}
+            </Button>
+          </div>
+        </CardHeader>
+      </Card>
 
-      {/* Header Controls */}
-      <div className="max-w-7xl mx-auto mt-6 px-4 py-4 bg-white rounded-lg shadow flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div className="flex flex-col md:flex-row gap-4 md:items-center">
-          <div className="flex flex-col">
-            <label htmlFor="month" className="text-sm font-medium text-gray-700 mb-1">Select Month:</label>
-            <select
-              id="month"
-              className="border rounded px-3 py-2 text-sm text-gray-900 bg-white"
-              value={selectedMonth}
-              onChange={e => setSelectedMonth(e.target.value)}
-            >
-              {months.map(month => (
-                <option key={month} value={month}>{month}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-        <div className="flex gap-2 self-end md:self-auto">
-          <button
-            className="bg-green-600 text-white px-5 py-2 rounded-md text-sm font-medium hover:bg-green-700 flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
-            onClick={handleExportExcel}
-            disabled={isExportingExcel || isLoading}
-          >
-            <span className="material-icons text-base">file_download</span>
-            {isExportingExcel ? "Exporting..." : "Export Excel"}
-          </button>
-          <button
-            className="bg-red-600 text-white px-5 py-2 rounded-md text-sm font-medium hover:bg-red-700 flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
-            onClick={handleExportPDF}
-            disabled={isExportingPDF || isLoading}
-          >
-            <span className="material-icons text-base">picture_as_pdf</span>
-            {isExportingPDF ? "Exporting..." : "Export PDF"}
-          </button>
-        </div>
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-2">
+        <SummaryCard title="Monthly Good" description={`Positive feedback in ${selectedMonth}.`} value={goodCount} accentClasses="text-emerald-700" loading={isGoodLoading} error={goodError} tone="good" />
+        <SummaryCard title="Monthly Bad" description={`Negative feedback in ${selectedMonth}.`} value={dissatisfactionCount} accentClasses="text-rose-700" loading={isDissatisfactionLoading} error={dissatisfactionError} tone="bad" />
       </div>
 
-      {/* Feedback Summary Cards */}
-      <div className="max-w-7xl mx-auto mt-8 px-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
-          {/* Monthly "Good" Count */}
-          <div className="bg-white rounded-lg shadow p-6 flex flex-1 min-h-[260px] items-center justify-center">
-            <div className="flex flex-col items-center justify-center w-full h-full">
-              <div className="text-md font-semibold text-green-700 mb-2 text-center">Monthly &quot;Good&quot; Count</div>
-              {isGoodLoading ? (
-                <div className="text-center py-8 text-gray-500">Loading...</div>
-              ) : goodError ? (
-                <div className="text-center py-8 text-red-600">{goodError}</div>
-              ) : (
-                <div className="text-6xl font-extrabold text-green-600 mb-2 text-center">{goodCount}</div>
-              )}
-              <div className="text-xs text-gray-500 text-center">
-                Total &quot;Good&quot; feedback received in {selectedMonth}.
-              </div>
-            </div>
-          </div>
-          {/* Monthly "Bad" Count */}
-          <div className="bg-white rounded-lg shadow p-6 flex flex-1 min-h-[260px] items-center justify-center">
-            <div className="flex flex-col items-center justify-center w-full h-full">
-              <div className="text-md font-semibold text-red-700 mb-2 text-center">Monthly &quot;Bad&quot; Count</div>
-              {isDissatisfactionLoading ? (
-                <div className="text-center py-8 text-gray-500">Loading...</div>
-              ) : dissatisfactionError ? (
-                <div className="text-center py-8 text-red-600">{dissatisfactionError}</div>
-              ) : (
-                <div className="text-6xl font-extrabold text-red-600 mb-2 text-center">{dissatisfactionCount}</div>
-              )}
-              <div className="text-xs text-gray-500 text-center">
-                Total &quot;Bad&quot; feedback received in {selectedMonth}.
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Staff Member Selections */}
-      <div className="max-w-7xl mx-auto mt-8 px-4">
-        <div className="bg-white rounded-lg shadow p-6 flex flex-col">
-          <h3 className="text-lg font-semibold mb-4 text-blue-700">Staff Member Selections</h3>
+      <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+        <SectionCard title="Staff member selections" description="Selection totals for the selected month.">
           {isLoading ? (
-            <div className="text-center py-8 text-gray-500">Loading...</div>
+            <div className="py-12 text-center text-sm text-slate-500">Loading staff selections…</div>
           ) : error ? (
-            <div className="text-center py-8 text-red-600">{error}</div>
+            <div className="py-12 text-center text-sm text-rose-600">{error}</div>
           ) : staffSelections.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">No data for this month.</div>
+            <div className="py-12 text-center text-sm text-slate-500">No data for this month.</div>
           ) : (
-            <table className="min-w-full text-sm mb-4">
-              <thead>
-                <tr className="bg-gray-50">
-                  <th className="px-4 py-2 text-left text-gray-800">STAFF NAME</th>
-                  <th className="px-4 py-2 text-left text-gray-800">TIMES SELECTED</th>
-                </tr>
-              </thead>
-              <tbody>
-                {staffSelections.map((staff) => (
-                  <tr key={staff.id} className="border-b">
-                    <td className="px-4 py-2 text-gray-700">{staff.name}</td>
-                    <td className="px-4 py-2 text-gray-700">{staff.count}</td>
-                  </tr>
+            <Table>
+              <TableHeader>
+                <TableRow className="border-slate-200 hover:bg-transparent">
+                  <TableHead className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">#</TableHead>
+                  <TableHead className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Staff name</TableHead>
+                  <TableHead className="text-right text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Times selected</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {staffSelections.map((staff, index) => (
+                  <TableRow key={staff.id} className="border-slate-100 hover:bg-slate-50/70">
+                    <TableCell className="font-medium text-slate-400">{index + 1}</TableCell>
+                    <TableCell className="font-medium text-slate-900">{staff.name}</TableCell>
+                    <TableCell className="text-right font-semibold text-slate-700">{staff.count}</TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           )}
-        </div>
-      </div>
+        </SectionCard>
 
-      {/* Staff Comparison Chart */}
-      <div className="max-w-7xl mx-auto mt-8 px-4">
-        <div className="bg-white rounded-lg shadow p-6 flex flex-col">
-          <h3 className="text-lg font-semibold mb-4 text-blue-700">Staff Comparison (Selections)</h3>
-          <div className="flex-1 flex items-center justify-center bg-gray-100 rounded-lg min-h-[220px]">
-            <StaffBarChart data={staffSelections} />
-          </div>
-          <div className="text-xs text-gray-500 mt-2 text-center">
-            Comparison of total times each staff member was selected by customers this month.
-          </div>
-        </div>
-      </div>
-
-      {/* Selection Trends Over Time */}
-      <div className="max-w-7xl mx-auto mt-8 px-4">
-        <div className="bg-white rounded-lg shadow p-6 flex flex-col">
-          <h3 className="text-lg font-semibold mb-4 text-blue-700">Selection Trends Over Time (Last 6 Months)</h3>
-          <div className="bg-gray-100 rounded-lg flex items-center justify-center min-h-[260px] mb-2">
-            {isTrendsLoading ? (
-              <div className="text-center py-8 text-gray-500">Loading...</div>
-            ) : trendsError ? (
-              <div className="text-center py-8 text-red-600">{trendsError}</div>
+        <SectionCard title="Recurring issues analysis" description="Compare dissatisfaction reasons against the previous month.">
+          <div className="space-y-3">
+            {isDissatisfactionLoading ? (
+              <div className="py-12 text-center text-sm text-slate-500">Loading issue trends…</div>
+            ) : dissatisfactionError ? (
+              <div className="py-12 text-center text-sm text-rose-600">{dissatisfactionError}</div>
+            ) : trendData.length === 0 ? (
+              <div className="py-12 text-center text-sm text-slate-500">No data available for this month.</div>
             ) : (
-              <StaffSelectionTrendsChart data={selectionTrends} staffNames={staffNames} />
+              trendData.map((item) => {
+                const positive = item.trend === "increasing";
+                const negative = item.trend === "decreasing";
+                return (
+                  <div key={item.reason} className="rounded-xl border border-slate-200 bg-slate-50/80 p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="font-semibold text-slate-900">{item.reason}</p>
+                        <p className="text-sm text-slate-500">{item.currentCount} reports this month</p>
+                      </div>
+                      <Badge
+                        variant="secondary"
+                        className={positive ? "bg-rose-100 text-rose-700" : negative ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600"}
+                      >
+                        {positive ? <ArrowUpRight className="mr-1 size-3.5" /> : negative ? <ArrowDownRight className="mr-1 size-3.5" /> : null}
+                        {item.trend === "stable" ? "Stable" : `${item.change > 0 ? "+" : ""}${item.change}`}
+                      </Badge>
+                    </div>
+                  </div>
+                );
+              })
             )}
           </div>
-          <div className="text-xs text-gray-500 mt-1 text-center">
-            Graphical representation of staff selection trends over the past few months.
-          </div>
-        </div>
+        </SectionCard>
       </div>
 
-      {/* Dissatisfaction Reports Section */}
-      <div className="max-w-7xl mx-auto mt-10 px-4">
-        <h2 className="text-2xl font-bold mb-6 text-gray-900">Dissatisfaction Reports</h2>
-        
-        {/* Dissatisfaction by Reason Pie Chart */}
-        <div className="bg-white rounded-lg shadow p-6 flex flex-col items-center min-h-[260px] mb-8">
-          <h3 className="text-lg font-semibold text-red-700 mb-4">Dissatisfaction by Reason</h3>
-          <div className="flex-1 flex items-center justify-center w-full bg-gray-100 rounded-lg h-64">
+      <div className="grid gap-6 xl:grid-cols-2">
+        <SectionCard title="Staff comparison" description="Compare how often staff were selected this month.">
+          <div className="h-[300px] rounded-2xl border border-slate-100 bg-slate-50/60 p-4">
+            {isLoading ? (
+              <div className="flex h-full items-center justify-center text-sm text-slate-500">Loading chart…</div>
+            ) : (
+              <StaffBarChart data={staffSelections} />
+            )}
+          </div>
+        </SectionCard>
+
+        <SectionCard title="Dissatisfaction by reason" description="Breakdown of negative feedback reasons for the selected month.">
+          <div className="h-[300px] rounded-2xl border border-slate-100 bg-slate-50/60 p-4">
             {isDissatisfactionLoading ? (
-              <div className="text-center py-8 text-gray-500">Loading...</div>
+              <div className="flex h-full items-center justify-center text-sm text-slate-500">Loading chart…</div>
             ) : dissatisfactionError ? (
-              <div className="text-center py-8 text-red-600">{dissatisfactionError}</div>
+              <div className="flex h-full items-center justify-center text-sm text-rose-600">{dissatisfactionError}</div>
             ) : (
               <DissatisfactionPieChart data={dissatisfactionPieData} />
             )}
           </div>
-          <div className="text-xs text-gray-500 mt-2 text-center">
-            Breakdown of &quot;Bad&quot; feedback by common reason categories.
-          </div>
-        </div>
+        </SectionCard>
+      </div>
 
-        {/* 6-Month Dissatisfaction Trends */}
-        <div className="bg-white rounded-lg shadow p-6 flex flex-col mb-8">
-          <h3 className="text-lg font-semibold mb-4 text-red-700">Dissatisfaction Trends Over Time (Last 6 Months)</h3>
-          <div className="bg-gray-100 rounded-lg flex items-center justify-center min-h-[260px] mb-2">
+      <div className="grid gap-6 xl:grid-cols-2">
+        <SectionCard title="Selection trends over time" description="Last several months of staff selection activity.">
+          <div className="h-[360px] rounded-2xl border border-slate-100 bg-slate-50/60 p-4">
+            {isTrendsLoading ? (
+              <div className="flex h-full items-center justify-center text-sm text-slate-500">Loading chart…</div>
+            ) : trendsError ? (
+              <div className="flex h-full items-center justify-center text-sm text-rose-600">{trendsError}</div>
+            ) : (
+              <StaffSelectionTrendsChart data={selectionTrends} staffNames={staffNames} />
+            )}
+          </div>
+        </SectionCard>
+
+        <SectionCard title="Dissatisfaction trends" description="Last 6 months of negative feedback counts.">
+          <div className="h-[360px] rounded-2xl border border-slate-100 bg-slate-50/60 p-4">
             {isDissatisfactionTrendsLoading ? (
-              <div className="text-center py-8 text-gray-500">Loading...</div>
+              <div className="flex h-full items-center justify-center text-sm text-slate-500">Loading chart…</div>
             ) : dissatisfactionTrendsError ? (
-              <div className="text-center py-8 text-red-600">{dissatisfactionTrendsError}</div>
+              <div className="flex h-full items-center justify-center text-sm text-rose-600">{dissatisfactionTrendsError}</div>
             ) : (
               <DissatisfactionTrendsChart data={dissatisfactionTrends} />
             )}
           </div>
-          <div className="text-xs text-gray-500 mt-1 text-center">
-            Trend of &quot;Bad&quot; feedback over the past 6 months.
-          </div>
-        </div>
-
-        {/* Recurring Issues Analysis */}
-        <div className="bg-white rounded-xl shadow-md p-6">
-          <h3 className="text-lg font-semibold text-red-600 mb-4">Recurring Issues Analysis</h3>
-          {isDissatisfactionLoading ? (
-            <div className="text-center py-8 text-gray-500">Loading...</div>
-          ) : dissatisfactionError ? (
-            <div className="text-center py-8 text-red-600">{dissatisfactionError}</div>
-          ) : trendData.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">No data available for this month.</div>
-          ) : (
-            <table className="min-w-full text-sm border-separate border-spacing-0">
-              <thead>
-                <tr className="bg-gray-50">
-                  <th className="px-4 py-2 text-left text-gray-700 font-semibold tracking-wide text-xs">ISSUE/REASON CATEGORY</th>
-                  <th className="px-4 py-2 text-left text-gray-700 font-semibold tracking-wide text-xs">FREQUENCY (THIS MONTH)</th>
-                  <th className="px-4 py-2 text-left text-gray-700 font-semibold tracking-wide text-xs">TREND (VS. LAST MONTH)</th>
-                </tr>
-              </thead>
-              <tbody>
-                {trendData.map((item: TrendData, idx: number) => {
-                  // Determine trend display
-                  let trendIcon: string;
-                  let trendText: string;
-                  let trendColor: string;
-
-                  if (item.trend === 'increasing') {
-                    trendIcon = 'arrow_upward';
-                    trendText = `Increasing (+${item.change})`;
-                    trendColor = 'text-red-600';
-                  } else if (item.trend === 'decreasing') {
-                    trendIcon = 'arrow_downward';
-                    trendText = `Decreasing (${item.change})`;
-                    trendColor = 'text-green-600';
-                  } else {
-                    trendIcon = 'horizontal_rule';
-                    trendText = 'Stable';
-                    trendColor = 'text-gray-600';
-                  }
-
-                  return (
-                    <tr key={item.reason} className={idx !== trendData.length - 1 ? 'border-b' : ''}>
-                      <td className="px-4 py-3 text-gray-900 whitespace-nowrap font-medium">{item.reason}</td>
-                      <td className="px-4 py-3 text-gray-900 whitespace-nowrap">{item.currentCount}</td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <span className={`${trendColor} flex items-center gap-1 font-medium`}>
-                          <span className="material-icons text-base align-middle">{trendIcon}</span>
-                          <span>{trendText}</span>
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          )}
-        </div>
+        </SectionCard>
       </div>
-      {/* Footer */}
-      <footer className="w-full bg-white border-t mt-12 py-6 px-4 flex items-center justify-center text-xs text-gray-500 rounded-t-lg shadow-inner" style={{ minHeight: '56px' }}>
-        <span>&copy; {new Date().getFullYear()} Customer Feedback Dashboard. All rights reserved.</span>
-      </footer>
     </div>
   );
-} 
+}

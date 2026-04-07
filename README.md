@@ -1,221 +1,260 @@
-# Customer Satisfaction Feedback System
+# Customer Feedback System
 
-A modern web-based platform for collecting and analyzing customer satisfaction feedback in retail environments. Built with Next.js, TypeScript, Prisma, and Tailwind CSS.
+A kiosk-oriented customer feedback application for retail environments, built with Next.js, TypeScript, Prisma, MySQL, Tailwind CSS, and NextAuth.js.
 
----
-
-## Features
-
-- **Customer Feedback Portal**: Simple, touch-optimized interface for customers to rate their experience and select staff.
-- **Admin Portal**: Secure management of staff, dissatisfaction reasons, and system configuration.
-- **Analytics & Reporting**: Visual dashboards for staff selection trends and dissatisfaction analysis.
-- **Session Timeout**: Automatic reset for kiosk use.
-- **Authentication**: NextAuth.js-based admin login and session management.
-- **Dockerized Deployment**: Production-ready with MySQL and Nginx support.
+The current implementation focuses on two working areas:
+- a **customer-facing kiosk flow** for collecting quick feedback
+- an **admin dashboard** for authentication, reporting, and export
 
 ---
 
-## Architecture & Tech Stack
+## Current Features
 
-- **Frontend & Backend**: Next.js (App Router, SSR)
-- **Language**: TypeScript (strict mode)
-- **Database**: MySQL (via Prisma ORM)
-- **Authentication**: NextAuth.js
-- **Styling**: Tailwind CSS
-- **Containerization**: Docker & Docker Compose
-- **State Management**: React Context API
-- **Testing**: (Planned) Unit and component tests
+### Customer kiosk flow
+- Home screen with two options:
+  - **Good**
+  - **Bad** (`NOT_SATISFIED` in the database)
+- Immediate feedback record creation when a customer selects an overall rating
+- Positive flow:
+  - redirects to a staff selection screen
+  - allows the customer to choose **one staff member** they interacted with
+- Negative flow:
+  - redirects to a dissatisfaction reason screen
+  - allows the customer to choose **one dissatisfaction reason**
+- Thank-you screen after submission
+- 10-second inactivity timeout on customer-facing screens, with automatic reset back to the home screen
+
+### Admin portal
+- Credential-based login using NextAuth.js
+- Protected `/admin` routes via middleware
+- Dashboard with:
+  - monthly **Good** feedback count
+  - monthly **Bad** feedback count
+  - staff selection table by month
+  - staff comparison bar chart
+  - staff selection trends chart
+  - dissatisfaction reason pie chart
+  - dissatisfaction trends chart (last 6 months)
+  - recurring issues analysis comparing selected month vs previous month
+- Staff management with live CRUD:
+  - list all staff records
+  - create staff members
+  - edit staff member details
+  - safe delete/deactivate behavior when feedback history exists
+  - inline image crop and backend image persistence under `public/uploads/staff`
+- Export of staff selection report to:
+  - **Excel**
+  - **PDF**
+
+### Data & infrastructure
+- Prisma ORM with MySQL
+- Seed script for admin user, staff, categories, dissatisfaction reasons, and system configuration values
+- Docker support for app and database containers
+- Prisma migrations included in the repository
 
 ---
 
-## Directory Structure
+## Current Tech Stack
 
+- **Frontend & Backend:** Next.js 15 (App Router)
+- **Language:** TypeScript
+- **Database:** MySQL
+- **ORM:** Prisma
+- **Authentication:** NextAuth.js (credentials provider)
+- **Styling:** Tailwind CSS v4
+- **Charts:** Recharts
+- **Exports:** ExcelJS, jsPDF, jspdf-autotable
+- **Containerization:** Docker, Docker Compose
+
+---
+
+## Current Project Structure
+
+```text
+.
+├── prisma/
+│   ├── migrations/
+│   ├── schema.prisma
+│   └── seed.ts
+├── public/
+│   ├── emojis/
+│   └── images/staff/
+├── src/
+│   ├── app/
+│   │   ├── admin/
+│   │   ├── api/
+│   │   ├── dissatisfaction-reasons/
+│   │   ├── rate-staff/
+│   │   └── thank-you/
+│   ├── components/ui/
+│   ├── hooks/
+│   └── lib/
+├── DATABASE_SETUP.md
+├── Dockerfile
+├── ERD.md
+├── PRD.md
+├── README.md
+└── TASKS.md
 ```
-src/
-├── app/                 # App Router pages and layouts (customer & admin portals)
-│   ├── api/             # API routes
-│   ├── admin/           # Admin portal (login, dashboard, error)
-│   ├── rate-staff/      # Staff selection flow
-│   ├── dissatisfaction-reasons/ # Dissatisfaction flow
-│   └── thank-you/       # Thank you page
-├── components/          # Reusable UI components
-│   └── ui/              # Base UI (charts, shimmer, etc.)
-├── lib/                 # Utility functions and configurations
-│   ├── db.ts            # Prisma client
-│   ├── auth.ts          # Auth logic
-│   └── staff-selection.ts # Staff selection logic
-├── server/              # Server-side code (tRPC, etc.)
-├── types/               # TypeScript type definitions
-├── hooks/               # Custom React hooks
-├── utils/               # Helper functions
-├── styles/              # Custom styles
-```
+
+---
+
+## Current User Flow
+
+### Customer flow
+1. Customer opens the home screen
+2. Customer selects **Good** or **Bad**
+3. App creates a `Feedback` record through `POST /api/feedback`
+4. App branches by rating:
+   - **Good** → `/rate-staff?feedbackId=...`
+   - **Bad** → `/dissatisfaction-reasons?feedbackId=...`
+5. Customer submits one follow-up selection
+6. App redirects to `/thank-you`
+7. Kiosk returns to `/` after inactivity timeout
+
+### Admin flow
+1. Admin visits `/admin/login`
+2. Admin signs in with username and password
+3. Authenticated user is redirected to `/admin/dashboard`
+4. Dashboard fetches reporting data from API routes
+5. Admin can export the monthly staff selection report to Excel or PDF
+
+---
+
+## Current API Routes
+
+### Authentication
+- `GET/POST /api/auth/[...nextauth]`
+
+### Customer flow
+- `POST /api/feedback`
+- `POST /api/feedback-staff`
+- `POST /api/feedback-dissatisfaction`
+- `GET /api/staff`
+- `GET /api/dissatisfaction-reasons`
+
+### Admin staff management
+- `GET /api/admin/staff`
+- `POST /api/admin/staff`
+- `GET /api/admin/staff/[id]`
+- `PUT /api/admin/staff/[id]`
+- `DELETE /api/admin/staff/[id]`
+- `POST /api/admin/staff/image`
+
+### Dashboard/reporting
+- `GET /api/staff-selections?month=...`
+- `GET /api/staff-selection-trends`
+- `GET /api/good-summary?month=...`
+- `GET /api/dissatisfaction-summary?month=...`
+- `GET /api/dissatisfaction-comparison?month=...`
+- `GET /api/dissatisfaction-trends`
+- `GET /api/ratings` *(legacy placeholder route; currently returns an empty array)*
 
 ---
 
 ## Environment Variables
 
-Create a `.env` or `.env.production` file in the project root with the following variables:
+Create a `.env` file for development or update `.env.prod` for production-like Docker runs.
 
-```
-# Database
-DATABASE_URL=mysql://user:password@db:3306/customer_feedback
-
-# NextAuth.js
-NEXTAUTH_URL=https://your-domain.com
-NEXTAUTH_SECRET=your-nextauth-secret-key-at-least-32-chars
-
-# Upload storage
-UPLOAD_DIR=/app/uploads
-
-# App settings
-SESSION_TIMEOUT=10000
-
-# MySQL (for docker-compose-database.yml)
-MYSQL_DATABASE=customer_feedback
-MYSQL_USER=user
-MYSQL_PASSWORD=password
-MYSQL_ROOT_PASSWORD=secure-root-password
+```env
+DATABASE_URL="mysql://feedback_user:your_password@localhost:3306/customer_feedback"
+NEXTAUTH_SECRET="your-nextauth-secret"
+NEXTAUTH_URL="http://localhost:3000"
+MYSQL_DATABASE="customer_feedback"
+MYSQL_USER="feedback_user"
+MYSQL_PASSWORD="your_password"
+MYSQL_ROOT_PASSWORD="your_root_password"
 ```
 
 ---
 
 ## Getting Started (Development)
 
+### 1. Install dependencies
 ```bash
 npm install
+```
+
+### 2. Configure environment
+Create a `.env` file with your database and NextAuth settings.
+
+### 3. Run database migrations
+```bash
+npx prisma migrate dev
+```
+
+### 4. Seed initial data
+```bash
+npm run prisma:seed
+```
+
+### 5. Start the development server
+```bash
 npm run dev
 ```
 
-- App runs at http://localhost:3000
-- Requires a running MySQL instance (see Docker setup below)
+Open:
+- Customer flow: `http://localhost:3000`
+- Admin login: `http://localhost:3000/admin/login`
 
 ---
 
-## Docker Deployment
+## Docker Usage
 
-### Prerequisites
-- Docker & Docker Compose
-- (Optional) Domain name & SSL certificates for production
+### Start the database
+```bash
+docker-compose -f docker-compose-database.yml up -d
+```
 
-### Setup
+### Start the app
+```bash
+docker-compose -f docker-compose-app.yml up -d
+```
 
-1. **Clone the repository:**
-   ```bash
-   git clone [repository-url]
-   cd customer-feedback
-   ```
-2. **Configure environment:**
-   - Copy and edit `.env.production` as above.
-3. **Start services:**
-   ```bash
-   docker-compose -f docker-compose-database.yml up -d
-   docker-compose -f docker-compose-app.yml up -d
-   ```
-4. **Initialize the database:**
-   ```bash
-   docker-compose -f docker-compose-app.yml exec app npx prisma migrate deploy
-   docker-compose -f docker-compose-app.yml exec app npm run prisma:seed
-   ```
+### Apply migrations in the app container
+```bash
+docker-compose -f docker-compose-app.yml exec app npx prisma migrate deploy
+```
 
-### Maintenance
-- View logs: `docker-compose -f docker-compose-app.yml logs -f`
-- Restart: `docker-compose -f docker-compose-app.yml restart`
-- Update: `git pull && docker-compose -f docker-compose-app.yml build app && docker-compose -f docker-compose-app.yml up -d`
-- Backup DB: `docker-compose -f docker-compose-database.yml exec db mysqldump -u root -p customer_feedback > backup_$(date +%Y%m%d).sql`
-- Restore DB: `docker-compose -f docker-compose-database.yml exec -T db mysql -u root -p customer_feedback < backup_file.sql`
-
----
-
-## Database Schema (ERD)
-
-> See [`ERD.md`](ERD.md) for full details.
-
-```mermaid
-erDiagram
-    User {
-        string id PK
-        string username
-        string password
-        string email
-        string role
-        bool isActive
-        datetime createdAt
-        datetime updatedAt
-    }
-    Staff {
-        string id PK
-        string name
-        string imageUrl
-        string position
-        string contactInfo
-        bool status
-        datetime createdAt
-        datetime updatedAt
-    }
-    Feedback {
-        string id PK
-        datetime timestamp
-        string overallRating
-        string comments
-    }
-    Category {
-        string id PK
-        string name
-        string description
-    }
-    DissatisfactionReason {
-        string id PK
-        string description
-        bool active
-        string categoryId FK
-    }
-    FeedbackStaff {
-        string id PK
-        string feedbackId FK
-        string staffId FK
-        datetime createdAt
-    }
-    FeedbackReason {
-        string id PK
-        string feedbackId FK
-        string reasonId FK
-        datetime createdAt
-    }
-    SystemConfig {
-        string id PK
-        string key
-        string value
-        datetime createdAt
-        datetime updatedAt
-    }
-    Feedback ||--o{ FeedbackStaff : "has staff selections"
-    Staff ||--o{ FeedbackStaff : "selected in"
-    Feedback ||--o{ FeedbackReason : "has reasons"
-    DissatisfactionReason ||--o{ FeedbackReason : "associated with"
-    Category ||--o{ DissatisfactionReason : "categorizes"
+### Seed data in the app container
+```bash
+docker-compose -f docker-compose-app.yml exec app npm run prisma:seed
 ```
 
 ---
 
-## Security & Best Practices
+## Seeded Development Data
 
-- Use strong, unique passwords for all secrets and DB users
-- Regularly update Docker images and dependencies
-- Validate all user input (Zod schemas)
-- Use HTTPS in production
-- Monitor logs and set up automated DB backups
-- Never commit `.env` files or secrets to version control
+The seed script currently creates:
+- 1 admin user
+  - username: `admin`
+  - password: `admin123`
+- 8 staff records with image paths
+- 3 categories
+- 5 dissatisfaction reasons
+- 3 system configuration records
 
----
-
-## References & Documentation
-
-- [Product Requirements Document (PRD.md)](PRD.md)
-- [Entity-Relationship Diagram (ERD.md)](ERD.md)
-- [Prisma Schema](prisma/schema.prisma)
-- [Database Setup Guide](DATABASE_SETUP.md)
+Change these values before any real deployment.
 
 ---
 
-For questions or contributions, please open an issue or pull request.
+## Current Limitations
+
+The documentation in this repository is now aligned to the **current implementation**, which means the following are **not** part of the implemented feature set yet:
+- dissatisfaction reason management UI
+- category management UI
+- system configuration UI
+- password reset
+- multiple dissatisfaction reason selection in the customer flow
+- optional customer comments in the customer flow
+- automatic use of `SystemConfig` values inside the kiosk pages
+
+---
+
+## Related Documentation
+
+- `PRD.md` — product requirements for the current implementation
+- `ERD.md` — current data model and relationships
+- `DATABASE_SETUP.md` — database and Prisma setup
+- `TASKS.md` — implemented work, pending work, and future enhancements
+- `CLAUDE.md` — contributor/developer guidance for this repository

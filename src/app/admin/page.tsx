@@ -2,6 +2,9 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function AdminRoot() {
@@ -18,10 +21,19 @@ export default function AdminRoot() {
     }
   }, [isLoading, isAuthenticated, isAdmin, router]);
 
-  // Show loading state while checking authentication
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-      <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-indigo-500"></div>
+    <div className="flex min-h-screen items-center justify-center bg-muted/30 px-4 py-10">
+      <Card className="w-full max-w-md shadow-sm">
+        <CardHeader className="space-y-2 text-center">
+          <CardTitle>Checking your session</CardTitle>
+          <CardDescription>Preparing the admin experience…</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Skeleton className="h-5 w-3/4 mx-auto" />
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+        </CardContent>
+      </Card>
     </div>
   );
-} 
+}

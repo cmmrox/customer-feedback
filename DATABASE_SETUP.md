@@ -1,21 +1,24 @@
 # Database Setup Guide
 
-This document provides instructions for setting up the MySQL database and Prisma ORM for the Customer Satisfaction Feedback System.
+This guide reflects the database setup required for the **current implementation** of the Customer Feedback System.
 
-## Prerequisites
+## 1. Prerequisites
 
 - MySQL server installed and running
 - Node.js and npm installed
+- project dependencies installed with `npm install`
 
-## Database Setup
+---
 
-1. Create a new MySQL database:
+## 2. Database Creation
+
+Create the database:
 
 ```sql
 CREATE DATABASE customer_feedback CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ```
 
-2. Create a database user and grant permissions:
+Create a database user and grant permissions:
 
 ```sql
 CREATE USER 'feedback_user'@'localhost' IDENTIFIED BY 'your_password';
@@ -23,96 +26,155 @@ GRANT ALL PRIVILEGES ON customer_feedback.* TO 'feedback_user'@'localhost';
 FLUSH PRIVILEGES;
 ```
 
-3. Create a `.env` file in the root directory with the following content (update with your credentials):
+---
 
-```
+## 3. Environment Configuration
+
+Create a `.env` file in the project root with values similar to the following:
+
+```env
 DATABASE_URL="mysql://feedback_user:your_password@localhost:3306/customer_feedback"
 NEXTAUTH_SECRET="your-nextauth-secret"
 NEXTAUTH_URL="http://localhost:3000"
 ```
 
-## Prisma Setup
+If you use Docker Compose for MySQL, also provide:
 
-1. Install dependencies:
+```env
+MYSQL_DATABASE="customer_feedback"
+MYSQL_USER="feedback_user"
+MYSQL_PASSWORD="your_password"
+MYSQL_ROOT_PASSWORD="your_root_password"
+```
+
+---
+
+## 4. Install Dependencies
 
 ```bash
 npm install
 ```
 
-2. Generate Prisma Client:
+---
+
+## 5. Prisma Setup
+
+Generate the Prisma client:
 
 ```bash
 npx prisma generate
 ```
 
-3. Apply database migrations:
+Apply migrations in development:
 
 ```bash
-npx prisma migrate dev --name init
+npx prisma migrate dev
 ```
 
-4. Seed the database with initial data:
+Apply migrations in production-like environments:
+
+```bash
+npx prisma migrate deploy
+```
+
+Seed the database:
 
 ```bash
 npm run prisma:seed
 ```
 
-5. (Optional) Reset database completely (wipe all data, reapply migrations, and reseed):
+Optional full reset:
 
 ```bash
 npx prisma migrate reset
 ```
 
-## Database Schema
+---
 
-The database schema includes the following models:
+## 6. Current Database Models
 
-- **User**: Admin users who manage the system
-- **Staff**: Staff members who receive feedback
-- **Feedback**: Customer feedback entries
-- **DissatisfactionReason**: Predefined reasons for customer dissatisfaction
-- **DissatisfactionFeedback**: Junction table linking feedback to reasons
-- **SystemConfig**: System configuration settings
+The current schema contains these models:
+- `User`
+- `Staff`
+- `Feedback`
+- `FeedbackStaff`
+- `Category`
+- `DissatisfactionReason`
+- `FeedbackReason`
+- `SystemConfig`
 
-## Working with the Database
+### Model usage summary
+- `User` stores admin login accounts.
+- `Staff` stores kiosk-selectable staff members.
+- `Feedback` stores the top-level rating submission.
+- `FeedbackStaff` links positive feedback to selected staff.
+- `Category` groups dissatisfaction reasons.
+- `DissatisfactionReason` stores negative feedback options.
+- `FeedbackReason` links negative feedback to selected reasons.
+- `SystemConfig` stores configuration-style key/value data.
 
-### Using Prisma Studio
+---
 
-You can use Prisma Studio to view and edit data in your database:
+## 7. Seed Data
+
+The current seed script creates:
+- one admin user (`admin` / `admin123`)
+- eight staff records
+- three categories
+- five dissatisfaction reasons
+- three system configuration records
+
+Change the seeded credentials and sample values before any real deployment.
+
+---
+
+## 8. Prisma Studio
+
+To inspect and edit records during development:
 
 ```bash
 npx prisma studio
 ```
 
-This will open a web interface at http://localhost:5555
+Prisma Studio will open locally, typically on:
+- `http://localhost:5555`
 
-### Data Access Layer
+---
 
-The data access layer is implemented in `lib/db.ts`, which exports a Prisma client instance that can be imported and used throughout the application.
+## 9. Docker-Based Setup
 
-Example usage:
+Start the database:
 
-```typescript
-import prisma from '@/lib/db';
-
-// Get all staff members
-const staff = await prisma.staff.findMany();
-
-// Create a new feedback entry
-const feedback = await prisma.feedback.create({
-  data: {
-    experienceRating: 'GOOD',
-    emotionRating: 'HEART',
-    staffId: '123',
-  },
-});
+```bash
+docker-compose -f docker-compose-database.yml up -d
 ```
 
-## Troubleshooting
+Start the app:
 
-If you encounter connection issues:
+```bash
+docker-compose -f docker-compose-app.yml up -d
+```
 
-1. Verify your MySQL server is running
-2. Check your database credentials in the `.env` file
-3. Ensure your MySQL user has the necessary permissions
-4. Try connecting to the database using a MySQL client 
+Apply migrations inside the app container:
+
+```bash
+docker-compose -f docker-compose-app.yml exec app npx prisma migrate deploy
+```
+
+Seed data inside the app container:
+
+```bash
+docker-compose -f docker-compose-app.yml exec app npm run prisma:seed
+```
+
+---
+
+## 10. Notes About the Current Implementation
+
+- `Feedback.comments` exists in the schema but is not yet used by the customer UI.
+- `SystemConfig` contains seeded values, but the customer-facing timeout is currently implemented in the UI as a fixed 10-second timer.
+- The active customer flow uses:
+  - `Feedback`
+  - `FeedbackStaff`
+  - `FeedbackReason`
+- Dashboard reporting queries read from these tables to build monthly summaries and charts.
