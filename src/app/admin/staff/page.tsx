@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Cropper, { type Area, type Point } from "react-easy-crop";
-import { Minus, MoreHorizontal, Pencil, Plus, RotateCcw, RotateCw, Search, Trash2, Upload, UserRound, ZoomIn, ZoomOut } from "lucide-react";
+import { Minus, Pencil, Plus, RotateCcw, RotateCw, Search, Trash2, Upload, UserRound, ZoomIn, ZoomOut } from "lucide-react";
 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -10,7 +10,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -479,27 +478,24 @@ export default function AdminStaffPage() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="outline" size="sm">
-                            <MoreHorizontal className="size-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => openEditDialog(member)}>
-                            <Pencil className="mr-2 size-4" /> Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            className="text-rose-600 focus:text-rose-600"
-                            onClick={() => {
-                              setPendingDelete(member);
-                              setIsDeleteOpen(true);
-                            }}
-                          >
-                            <Trash2 className="mr-2 size-4" /> Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      <div className="flex items-center justify-end gap-2">
+                        <Button variant="outline" size="sm" onClick={() => openEditDialog(member)}>
+                          <Pencil className="mr-2 size-4" />
+                          Edit
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="border-rose-200 text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+                          onClick={() => {
+                            setPendingDelete(member);
+                            setIsDeleteOpen(true);
+                          }}
+                        >
+                          <Trash2 className="mr-2 size-4" />
+                          Delete
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
