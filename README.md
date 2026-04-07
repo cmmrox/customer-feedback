@@ -36,6 +36,12 @@ The current implementation focuses on two working areas:
   - dissatisfaction reason pie chart
   - dissatisfaction trends chart (last 6 months)
   - recurring issues analysis comparing selected month vs previous month
+- Staff management with live CRUD:
+  - list all staff records
+  - create staff members
+  - edit staff member details
+  - safe delete/deactivate behavior when feedback history exists
+  - inline image crop and backend image persistence under `public/uploads/staff`
 - Export of staff selection report to:
   - **Excel**
   - **PDF**
@@ -126,6 +132,14 @@ The current implementation focuses on two working areas:
 - `POST /api/feedback-dissatisfaction`
 - `GET /api/staff`
 - `GET /api/dissatisfaction-reasons`
+
+### Admin staff management
+- `GET /api/admin/staff`
+- `POST /api/admin/staff`
+- `GET /api/admin/staff/[id]`
+- `PUT /api/admin/staff/[id]`
+- `DELETE /api/admin/staff/[id]`
+- `POST /api/admin/staff/image`
 
 ### Dashboard/reporting
 - `GET /api/staff-selections?month=...`
@@ -227,7 +241,6 @@ Change these values before any real deployment.
 ## Current Limitations
 
 The documentation in this repository is now aligned to the **current implementation**, which means the following are **not** part of the implemented feature set yet:
-- staff management CRUD screens
 - dissatisfaction reason management UI
 - category management UI
 - system configuration UI

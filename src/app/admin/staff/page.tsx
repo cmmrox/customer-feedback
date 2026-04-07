@@ -31,12 +31,12 @@ interface StaffRecord {
   updatedAt: string;
 }
 
-const initialStaff: StaffRecord[] = [
-  { id: "1", name: "J.M. Hansi Sandamini Bhagya", position: "Chief Cashier", contactInfo: "hansi.bhagya@example.com", status: true, imageUrl: "/images/staff/chief-cashier-j-m-hansi-sandamini-bhagya.jpg", cropLabel: "Centered face crop", updatedAt: "2026-04-05" },
-  { id: "2", name: "Prasanna Walukumara", position: "Sales Assistant", contactInfo: "prasanna.walukumara@example.com", status: true, imageUrl: "/images/staff/sales-assistant-prasanna-walukumara.jpg", cropLabel: "Head and shoulders", updatedAt: "2026-04-04" },
-  { id: "3", name: "C. Swetha Gimhani Fonseka", position: "Cashier", contactInfo: "swetha.fonseka@example.com", status: true, imageUrl: "/images/staff/cashier-c-swetha-gimhani-fonseka.jpg", cropLabel: "Balanced portrait", updatedAt: "2026-04-03" },
-  { id: "4", name: "V. Kishan", position: "Sales Assistant", contactInfo: "kishan@example.com", status: false, imageUrl: "/images/staff/sales-assistant-v-kishan.jpg", cropLabel: "Zoomed profile", updatedAt: "2026-04-02" },
-];
+interface DeleteResponse {
+  message: string;
+  mode: "deleted" | "deactivated";
+  feedbackCount: number;
+  staff: StaffRecord;
+}
 
 const emptyStaff: StaffRecord = {
   id: "",
@@ -62,10 +62,27 @@ function initials(name: string) {
     .join("");
 }
 
+async function parseJsonSafe(response: Response) {
+  const text = await response.text();
+  if (!text) return null;
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+}
+
 export default function AdminStaffPage() {
-  const [staff, setStaff] = useState<StaffRecord[]>(initialStaff);
+  const [staff, setStaff] = useState<StaffRecord[]>([]);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [loadError, setLoadError] = useState<string>("");
+  const [submitError, setSubmitError] = useState<string>("");
+  const [deleteMessage, setDeleteMessage] = useState<string>("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [editingStaff, setEditingStaff] = useState<StaffRecord>(emptyStaff);
@@ -105,6 +122,7 @@ export default function AdminStaffPage() {
   const showUploadAction = !selectedImageSrc && !hasSavedImage && !isImageDirty;
   const showPendingImageActions = Boolean(selectedImageSrc) && isImageDirty;
   const showRemoveAction = hasSavedImage && !isImageDirty;
+  const isEditingExisting = Boolean(editingStaff.id && staff.some((member) => member.id === editingStaff.id));
 
   const resetImageEditor = (options?: { keepSavedImage?: boolean }) => {
     if (!options?.keepSavedImage) {
@@ -144,14 +162,43 @@ export default function AdminStaffPage() {
     }
   };
 
+  const fetchStaff = async (showSkeleton = false) => {
+    if (showSkeleton) setIsLoading(true);
+    setIsRefreshing(!showSkeleton);
+    setLoadError("");
+
+    try {
+      const response = await fetch("/api/admin/staff", { cache: "no-store" });
+      const data = await parseJsonSafe(response);
+
+      if (!response.ok) {
+        throw new Error(data?.error || "Failed to load staff list");
+      }
+
+      setStaff(Array.isArray(data) ? data : []);
+    } catch (error) {
+      setLoadError(error instanceof Error ? error.message : "Failed to load staff list");
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    void fetchStaff(true);
+  }, []);
+
   const openAddDialog = () => {
-    const nextStaff = { ...emptyStaff, id: `mock-${Date.now()}` };
-    setEditingStaff(nextStaff);
+    setSubmitError("");
+    setDeleteMessage("");
+    setEditingStaff({ ...emptyStaff });
     resetImageEditor();
     setIsFormOpen(true);
   };
 
   const openEditDialog = (member: StaffRecord) => {
+    setSubmitError("");
+    setDeleteMessage("");
     setEditingStaff({ ...member });
     resetImageEditor();
     seedSavedImageState(member);
@@ -163,23 +210,70 @@ export default function AdminStaffPage() {
     if (!open) {
       resetImageEditor();
       setEditingStaff(emptyStaff);
+      setSubmitError("");
     }
   };
 
-  const saveStaff = () => {
-    setStaff((current) => {
-      const exists = current.some((member) => member.id === editingStaff.id);
-      const payload = { ...editingStaff, updatedAt: "2026-04-06" };
-      return exists ? current.map((member) => (member.id === payload.id ? payload : member)) : [payload, ...current];
-    });
-    handleDialogOpenChange(false);
+  const saveStaff = async () => {
+    setIsSubmitting(true);
+    setSubmitError("");
+
+    try {
+      const payload = {
+        name: editingStaff.name,
+        position: editingStaff.position,
+        contactInfo: editingStaff.contactInfo,
+        status: editingStaff.status,
+        imageUrl: editingStaff.imageUrl || undefined,
+        cropLabel: editingStaff.cropLabel || undefined,
+      };
+
+      const response = await fetch(isEditingExisting ? `/api/admin/staff/${editingStaff.id}` : "/api/admin/staff", {
+        method: isEditingExisting ? "PUT" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await parseJsonSafe(response);
+      if (!response.ok) {
+        throw new Error(data?.error || "Failed to save staff member");
+      }
+
+      await fetchStaff();
+      handleDialogOpenChange(false);
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : "Failed to save staff member");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (!pendingDelete) return;
-    setStaff((current) => current.filter((member) => member.id !== pendingDelete.id));
-    setPendingDelete(null);
-    setIsDeleteOpen(false);
+
+    setIsDeleting(true);
+    setSubmitError("");
+    setDeleteMessage("");
+
+    try {
+      const response = await fetch(`/api/admin/staff/${pendingDelete.id}`, {
+        method: "DELETE",
+      });
+      const data = (await parseJsonSafe(response)) as DeleteResponse | null;
+
+      if (!response.ok) {
+        throw new Error((data as { error?: string } | null)?.error || "Failed to delete staff member");
+      }
+
+      setDeleteMessage(data?.message || "Staff member updated");
+      await fetchStaff();
+      setPendingDelete(null);
+      setIsDeleteOpen(false);
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : "Failed to delete staff member");
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const openFilePicker = () => {
@@ -228,12 +322,26 @@ export default function AdminStaffPage() {
         outputHeight: 320,
       });
 
-      setSavedImageSrc(croppedDataUrl);
+      const uploadResponse = await fetch("/api/admin/staff/image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          imageDataUrl: croppedDataUrl,
+          staffId: editingStaff.id || undefined,
+        }),
+      });
+      const uploadData = await parseJsonSafe(uploadResponse);
+
+      if (!uploadResponse.ok) {
+        throw new Error(uploadData?.error || "Failed to upload cropped image");
+      }
+
+      setSavedImageSrc(uploadData?.imageUrl || croppedDataUrl);
       setSelectedImageSrc(null);
       setIsImageDirty(false);
       setEditingStaff((current) => ({
         ...current,
-        imageUrl: croppedDataUrl,
+        imageUrl: uploadData?.imageUrl || croppedDataUrl,
         cropLabel: `Custom crop · Zoom ${zoom.toFixed(1)}x · Rotation ${Math.round(rotation)}°`,
       }));
       if (fileInputRef.current) {
@@ -245,7 +353,7 @@ export default function AdminStaffPage() {
       }
     } catch (error) {
       console.error("Failed to generate cropped image preview", error);
-      setImageError("Could not generate the cropped preview. Please try another image.");
+      setImageError(error instanceof Error ? error.message : "Could not generate the cropped preview. Please try another image.");
     } finally {
       setIsSavingImage(false);
     }
@@ -274,11 +382,11 @@ export default function AdminStaffPage() {
       <Card className="border-slate-200 shadow-sm">
         <CardHeader className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-2">
-            <Badge variant="secondary" className="w-fit bg-slate-100 text-slate-600">UI Preview</Badge>
+            <Badge variant="secondary" className="w-fit bg-slate-100 text-slate-600">Live Admin</Badge>
             <div>
               <CardTitle className="text-2xl font-bold text-slate-900">Staff directory</CardTitle>
               <CardDescription className="mt-1 text-sm text-slate-500">
-                Hardcoded preview for add, edit, delete, and profile photo crop flow before backend integration.
+                Real staff records from the database. Add, edit, deactivate, or delete staff from this admin view.
               </CardDescription>
             </div>
           </div>
@@ -288,6 +396,18 @@ export default function AdminStaffPage() {
           </Button>
         </CardHeader>
       </Card>
+
+      {loadError ? (
+        <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          {loadError}
+        </div>
+      ) : null}
+
+      {deleteMessage ? (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+          {deleteMessage}
+        </div>
+      ) : null}
 
       <div className="grid gap-4 lg:grid-cols-[1fr_auto_auto]">
         <div className="relative">
@@ -305,7 +425,7 @@ export default function AdminStaffPage() {
           </SelectContent>
         </Select>
         <div className="flex items-center justify-end gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-600 shadow-sm">
-          <span>Total preview staff</span>
+          <span>{isRefreshing ? "Refreshing..." : "Total staff"}</span>
           <Badge variant="secondary">{filteredStaff.length}</Badge>
         </div>
       </div>
@@ -314,79 +434,89 @@ export default function AdminStaffPage() {
         <CardHeader className="space-y-1.5 pb-4">
           <CardTitle className="text-xl font-semibold text-slate-900">Staff management list</CardTitle>
           <CardDescription className="text-sm text-slate-500">
-            Review profile status and open the add/edit/delete flows from this single list.
+            Review profile status and manage real staff records from this single list.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow className="border-slate-200 hover:bg-transparent">
-                <TableHead className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Profile</TableHead>
-                <TableHead className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Staff</TableHead>
-                <TableHead className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Contact</TableHead>
-                <TableHead className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Status</TableHead>
-                <TableHead className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Crop Preview</TableHead>
-                <TableHead className="text-right text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredStaff.map((member) => (
-                <TableRow key={member.id} className="border-slate-100 hover:bg-slate-50/70">
-                  <TableCell>
-                    <Avatar className="h-12 w-12 rounded-xl border border-slate-200">
-                      <AvatarImage src={member.imageUrl} alt={member.name} />
-                      <AvatarFallback className="rounded-xl bg-slate-100 text-slate-700">{initials(member.name)}</AvatarFallback>
-                    </Avatar>
-                  </TableCell>
-                  <TableCell>
-                    <div className="space-y-1">
-                      <p className="font-semibold text-slate-900">{member.name}</p>
-                      <p className="text-sm text-slate-500">{member.position}</p>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-sm text-slate-600">{member.contactInfo || "—"}</TableCell>
-                  <TableCell>
-                    <Badge variant="secondary" className={member.status ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600"}>
-                      {member.status ? "Active" : "Inactive"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-sm text-slate-500">{member.cropLabel || "No crop set"}</TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="outline" size="sm">
-                          <MoreHorizontal className="size-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => openEditDialog(member)}>
-                          <Pencil className="mr-2 size-4" /> Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="text-rose-600 focus:text-rose-600"
-                          onClick={() => {
-                            setPendingDelete(member);
-                            setIsDeleteOpen(true);
-                          }}
-                        >
-                          <Trash2 className="mr-2 size-4" /> Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
+          {isLoading ? (
+            <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-10 text-center text-sm text-slate-500">
+              Loading staff records...
+            </div>
+          ) : filteredStaff.length === 0 ? (
+            <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-10 text-center text-sm text-slate-500">
+              No staff records found for the current filter.
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow className="border-slate-200 hover:bg-transparent">
+                  <TableHead className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Profile</TableHead>
+                  <TableHead className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Staff</TableHead>
+                  <TableHead className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Contact</TableHead>
+                  <TableHead className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Status</TableHead>
+                  <TableHead className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Crop Preview</TableHead>
+                  <TableHead className="text-right text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {filteredStaff.map((member) => (
+                  <TableRow key={member.id} className="border-slate-100 hover:bg-slate-50/70">
+                    <TableCell>
+                      <Avatar className="h-12 w-12 rounded-xl border border-slate-200">
+                        <AvatarImage src={member.imageUrl} alt={member.name} />
+                        <AvatarFallback className="rounded-xl bg-slate-100 text-slate-700">{initials(member.name)}</AvatarFallback>
+                      </Avatar>
+                    </TableCell>
+                    <TableCell>
+                      <div className="space-y-1">
+                        <p className="font-semibold text-slate-900">{member.name}</p>
+                        <p className="text-sm text-slate-500">{member.position || "—"}</p>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-sm text-slate-600">{member.contactInfo || "—"}</TableCell>
+                    <TableCell>
+                      <Badge variant="secondary" className={member.status ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600"}>
+                        {member.status ? "Active" : "Inactive"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-sm text-slate-500">{member.cropLabel || "No crop set"}</TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="outline" size="sm">
+                            <MoreHorizontal className="size-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => openEditDialog(member)}>
+                            <Pencil className="mr-2 size-4" /> Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-rose-600 focus:text-rose-600"
+                            onClick={() => {
+                              setPendingDelete(member);
+                              setIsDeleteOpen(true);
+                            }}
+                          >
+                            <Trash2 className="mr-2 size-4" /> Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
 
       <Dialog open={isFormOpen} onOpenChange={handleDialogOpenChange}>
         <DialogContent className="max-w-[calc(100vw-1.5rem)] sm:max-w-[1100px] overflow-hidden p-0">
           <DialogHeader className="border-b border-slate-200 px-6 py-5 text-left">
-            <DialogTitle>{staff.some((member) => member.id === editingStaff.id) ? "Edit staff member" : "Add staff member"}</DialogTitle>
+            <DialogTitle>{isEditingExisting ? "Edit staff member" : "Add staff member"}</DialogTitle>
             <DialogDescription>
-              UI-only preview flow. This dialog will later connect to the real API and image upload pipeline.
+              Save real staff records to the database. Cropped staff images are now uploaded to backend storage and saved as reusable URLs.
             </DialogDescription>
           </DialogHeader>
 
@@ -522,6 +652,12 @@ export default function AdminStaffPage() {
                   <CardDescription>Basic information shown in the staff directory and customer flow.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-5">
+                  {submitError ? (
+                    <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                      {submitError}
+                    </div>
+                  ) : null}
+
                   <div className="grid gap-4 lg:grid-cols-2">
                     <div className="space-y-2 lg:col-span-2">
                       <Label htmlFor="staff-name">Staff name</Label>
@@ -580,8 +716,8 @@ export default function AdminStaffPage() {
           </div>
 
           <DialogFooter className="border-t border-slate-200 bg-white px-5 py-4 sm:px-6 sm:justify-end">
-            <Button variant="outline" onClick={() => handleDialogOpenChange(false)}>Cancel</Button>
-            <Button onClick={saveStaff}>Save Preview</Button>
+            <Button variant="outline" onClick={() => handleDialogOpenChange(false)} disabled={isSubmitting}>Cancel</Button>
+            <Button onClick={saveStaff} disabled={isSubmitting}>{isSubmitting ? "Saving..." : "Save Preview"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -589,14 +725,18 @@ export default function AdminStaffPage() {
       <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete staff preview item?</AlertDialogTitle>
+            <AlertDialogTitle>Delete staff member?</AlertDialogTitle>
             <AlertDialogDescription>
-              {pendingDelete ? `This will remove ${pendingDelete.name} from the UI preview list only.` : "This will remove the selected staff item from the preview list."}
+              {pendingDelete
+                ? `If ${pendingDelete.name} already has feedback history, the system will deactivate them instead of permanently deleting the record.`
+                : "This will remove the selected staff item from the system."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setPendingDelete(null)}>Cancel</AlertDialogCancel>
-            <AlertDialogAction className="bg-rose-600 hover:bg-rose-700" onClick={confirmDelete}>Delete</AlertDialogAction>
+            <AlertDialogCancel onClick={() => setPendingDelete(null)} disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction className="bg-rose-600 hover:bg-rose-700" onClick={confirmDelete} disabled={isDeleting}>
+              {isDeleting ? "Processing..." : "Delete"}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

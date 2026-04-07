@@ -1,3 +1,16 @@
+function getRadianAngle(degreeValue: number) {
+  return (degreeValue * Math.PI) / 180;
+}
+
+function rotateSize(width: number, height: number, rotation: number) {
+  const rotRad = getRadianAngle(rotation);
+
+  return {
+    width: Math.abs(Math.cos(rotRad) * width) + Math.abs(Math.sin(rotRad) * height),
+    height: Math.abs(Math.sin(rotRad) * width) + Math.abs(Math.cos(rotRad) * height),
+  };
+}
+
 export async function getCroppedImg({
   imageSrc,
   pixelCrop,
@@ -12,6 +25,9 @@ export async function getCroppedImg({
   outputHeight?: number;
 }): Promise<string> {
   const image = await createImage(imageSrc);
+  const rotRad = getRadianAngle(rotation);
+  const { width: bBoxWidth, height: bBoxHeight } = rotateSize(image.width, image.height, rotation);
+
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
 
@@ -19,16 +35,12 @@ export async function getCroppedImg({
     throw new Error("Could not create canvas context");
   }
 
-  const safeArea = Math.max(image.width, image.height) * 2;
-  canvas.width = safeArea;
-  canvas.height = safeArea;
+  canvas.width = bBoxWidth;
+  canvas.height = bBoxHeight;
 
-  ctx.translate(safeArea / 2, safeArea / 2);
-  ctx.rotate((rotation * Math.PI) / 180);
-  ctx.translate(-safeArea / 2, -safeArea / 2);
-  ctx.drawImage(image, safeArea / 2 - image.width / 2, safeArea / 2 - image.height / 2);
-
-  const imageData = ctx.getImageData(0, 0, safeArea, safeArea);
+  ctx.translate(bBoxWidth / 2, bBoxHeight / 2);
+  ctx.rotate(rotRad);
+  ctx.drawImage(image, -image.width / 2, -image.height / 2);
 
   const cropCanvas = document.createElement("canvas");
   cropCanvas.width = outputWidth ?? pixelCrop.width;
@@ -39,17 +51,11 @@ export async function getCroppedImg({
     throw new Error("Could not create crop canvas context");
   }
 
-  const sourceCanvas = document.createElement("canvas");
-  sourceCanvas.width = safeArea;
-  sourceCanvas.height = safeArea;
-  const sourceCtx = sourceCanvas.getContext("2d");
-  if (!sourceCtx) {
-    throw new Error("Could not create source canvas context");
-  }
+  cropCtx.fillStyle = "#ffffff";
+  cropCtx.fillRect(0, 0, cropCanvas.width, cropCanvas.height);
 
-  sourceCtx.putImageData(imageData, 0, 0);
   cropCtx.drawImage(
-    sourceCanvas,
+    canvas,
     pixelCrop.x,
     pixelCrop.y,
     pixelCrop.width,
