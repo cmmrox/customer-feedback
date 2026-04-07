@@ -16,7 +16,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Textarea } from "@/components/ui/textarea";
 import { getCroppedImg } from "@/lib/image-crop";
 
 interface StaffRecord {
@@ -378,24 +377,6 @@ export default function AdminStaffPage() {
 
   return (
     <div className="space-y-6">
-      <Card className="border-slate-200 shadow-sm">
-        <CardHeader className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div className="space-y-2">
-            <Badge variant="secondary" className="w-fit bg-slate-100 text-slate-600">Live Admin</Badge>
-            <div>
-              <CardTitle className="text-2xl font-bold text-slate-900">Staff directory</CardTitle>
-              <CardDescription className="mt-1 text-sm text-slate-500">
-                Real staff records from the database. Add, edit, deactivate, or delete staff from this admin view.
-              </CardDescription>
-            </div>
-          </div>
-          <Button className="h-11 bg-slate-900 text-white shadow-sm hover:bg-slate-800" onClick={openAddDialog}>
-            <Plus className="mr-2 size-4" />
-            Add Staff
-          </Button>
-        </CardHeader>
-      </Card>
-
       {loadError ? (
         <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
           {loadError}
@@ -408,33 +389,43 @@ export default function AdminStaffPage() {
         </div>
       ) : null}
 
-      <div className="grid gap-4 lg:grid-cols-[1fr_auto_auto]">
-        <div className="relative">
+      <div className="grid items-stretch gap-4 lg:grid-cols-[minmax(0,1fr)_176px_176px]">
+        <div className="relative h-11">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by name, position, or contact info" className="h-11 pl-10" />
+          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by name, position, or contact info" className="h-full pl-10" />
         </div>
-        <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as typeof statusFilter)}>
-          <SelectTrigger className="h-11 w-full lg:w-44">
-            <SelectValue placeholder="Filter status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All statuses</SelectItem>
-            <SelectItem value="active">Active only</SelectItem>
-            <SelectItem value="inactive">Inactive only</SelectItem>
-          </SelectContent>
-        </Select>
-        <div className="flex items-center justify-end gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-600 shadow-sm">
+        <div className="h-11">
+          <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as typeof statusFilter)}>
+            <SelectTrigger className="h-full w-full">
+              <SelectValue placeholder="Filter status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All statuses</SelectItem>
+              <SelectItem value="active">Active only</SelectItem>
+              <SelectItem value="inactive">Inactive only</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex h-11 w-full items-center justify-between rounded-md border border-slate-200 bg-background px-3 text-sm text-slate-600 shadow-sm">
           <span>{isRefreshing ? "Refreshing..." : "Total staff"}</span>
-          <Badge variant="secondary">{filteredStaff.length}</Badge>
+          <Badge variant="secondary" className="min-w-8 justify-center">{filteredStaff.length}</Badge>
         </div>
       </div>
 
       <Card className="border-slate-200 shadow-sm">
-        <CardHeader className="space-y-1.5 pb-4">
-          <CardTitle className="text-xl font-semibold text-slate-900">Staff management list</CardTitle>
-          <CardDescription className="text-sm text-slate-500">
-            Review profile status and manage real staff records from this single list.
-          </CardDescription>
+        <CardHeader className="flex flex-col gap-4 pb-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2">
+              <CardTitle className="text-xl font-semibold text-slate-900">Staff management list</CardTitle>
+            </div>
+            <CardDescription className="text-sm text-slate-500">
+              Review staff profiles, update details, and manage who appears in the customer flow.
+            </CardDescription>
+          </div>
+          <Button className="h-11 bg-slate-900 px-4 text-white shadow-sm hover:bg-slate-800" onClick={openAddDialog}>
+            <Plus className="mr-2 size-4" />
+            Add Staff
+          </Button>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -510,7 +501,7 @@ export default function AdminStaffPage() {
           <DialogHeader className="border-b border-slate-200 px-6 py-5 text-left">
             <DialogTitle>{isEditingExisting ? "Edit staff member" : "Add staff member"}</DialogTitle>
             <DialogDescription>
-              Save real staff records to the database. Cropped staff images are now uploaded to backend storage and saved as reusable URLs.
+              Add a new staff member or update an existing profile. Save the image separately before saving the full record.
             </DialogDescription>
           </DialogHeader>
 
@@ -520,7 +511,7 @@ export default function AdminStaffPage() {
                 <CardHeader className="space-y-2 pb-3">
                   <CardTitle className="text-base">Profile picture</CardTitle>
                   <CardDescription>
-                    Upload an image, adjust the crop inline, then save the image preview before saving the full staff record.
+                    Upload a profile image, adjust the crop, then save the image before saving the full staff record.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -554,7 +545,7 @@ export default function AdminStaffPage() {
                             </Avatar>
                             <div>
                               <p className="font-medium text-slate-700">No image uploaded yet</p>
-                              <p className="text-xs text-slate-500">Upload a photo to crop, zoom, rotate, and save it here.</p>
+                              <p className="text-xs text-slate-500">Upload a photo to crop, zoom, rotate, and save for this staff member.</p>
                             </div>
                           </div>
                         )}
@@ -601,8 +592,8 @@ export default function AdminStaffPage() {
                         </div>
                       </div>
 
-                      <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500">
-                        Drag the image inside the square frame to reposition it. This crop matches the frontend staff card image ratio.
+                      <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs leading-relaxed text-slate-500">
+                        Drag the image inside the square frame to reposition it. The saved crop is used for the staff card shown to customers.
                       </div>
                     </div>
                   ) : null}
@@ -643,7 +634,7 @@ export default function AdminStaffPage() {
               <Card className="border-slate-200 shadow-none">
                 <CardHeader className="space-y-2 pb-4">
                   <CardTitle className="text-base">Staff details</CardTitle>
-                  <CardDescription>Basic information shown in the staff directory and customer flow.</CardDescription>
+                  <CardDescription>Basic details shown in the admin list and customer-facing staff selection.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-5">
                   {submitError ? (
@@ -694,24 +685,16 @@ export default function AdminStaffPage() {
                     />
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="staff-notes">Photo prep notes</Label>
-                    <Textarea
-                      id="staff-notes"
-                      value={editingStaff.cropLabel ?? ""}
-                      onChange={(e) => setEditingStaff((current) => ({ ...current, cropLabel: e.target.value }))}
-                      placeholder="Describe crop intent or preview note"
-                      className="min-h-[140px]"
-                    />
-                  </div>
                 </CardContent>
               </Card>
             </div>
           </div>
 
-          <DialogFooter className="border-t border-slate-200 bg-white px-5 py-4 sm:px-6 sm:justify-end">
-            <Button variant="outline" onClick={() => handleDialogOpenChange(false)} disabled={isSubmitting}>Cancel</Button>
-            <Button onClick={saveStaff} disabled={isSubmitting}>{isSubmitting ? "Saving..." : "Save Preview"}</Button>
+          <DialogFooter className="border-t border-slate-200 bg-white px-5 py-0 sm:px-6 sm:justify-end">
+            <div className="flex w-full flex-col gap-2 pt-4 pb-5 sm:w-auto sm:flex-row sm:items-center">
+              <Button variant="outline" onClick={() => handleDialogOpenChange(false)} disabled={isSubmitting}>Cancel</Button>
+              <Button onClick={saveStaff} disabled={isSubmitting}>{isSubmitting ? (isEditingExisting ? "Updating..." : "Saving...") : (isEditingExisting ? "Update" : "Save")}</Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
