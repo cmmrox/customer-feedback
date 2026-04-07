@@ -390,13 +390,18 @@ export default function AdminStaffPage() {
       ) : null}
 
       <div className="grid items-stretch gap-4 lg:grid-cols-[minmax(0,1fr)_176px_176px]">
-        <div className="relative h-11">
-          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by name, position, or contact info" className="h-full pl-10" />
+        <div className="relative flex min-h-11 items-stretch">
+          <Search className="pointer-events-none absolute left-3 top-1/2 z-10 size-4 -translate-y-1/2 text-slate-400" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by name, position, or contact info"
+            className="h-11 pl-10"
+          />
         </div>
-        <div className="h-11">
+        <div className="flex min-h-11 items-stretch">
           <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as typeof statusFilter)}>
-            <SelectTrigger className="h-full w-full">
+            <SelectTrigger className="h-11 w-full min-h-11">
               <SelectValue placeholder="Filter status" />
             </SelectTrigger>
             <SelectContent>
@@ -406,7 +411,7 @@ export default function AdminStaffPage() {
             </SelectContent>
           </Select>
         </div>
-        <div className="flex h-11 w-full items-center justify-between rounded-md border border-slate-200 bg-background px-3 text-sm text-slate-600 shadow-sm">
+        <div className="flex h-11 min-h-11 w-full items-center justify-between rounded-md border border-slate-200 bg-background px-3 text-sm text-slate-600 shadow-sm">
           <span>{isRefreshing ? "Refreshing..." : "Total staff"}</span>
           <Badge variant="secondary" className="min-w-8 justify-center">{filteredStaff.length}</Badge>
         </div>
