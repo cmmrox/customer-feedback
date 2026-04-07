@@ -454,7 +454,6 @@ export default function AdminStaffPage() {
                   <TableHead className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Staff</TableHead>
                   <TableHead className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Contact</TableHead>
                   <TableHead className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Status</TableHead>
-                  <TableHead className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Crop Preview</TableHead>
                   <TableHead className="text-right text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -479,7 +478,6 @@ export default function AdminStaffPage() {
                         {member.status ? "Active" : "Inactive"}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-sm text-slate-500">{member.cropLabel || "No crop set"}</TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
