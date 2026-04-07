@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BarChart3, ChevronsUpDown, LayoutDashboard, LogOut, ShieldCheck } from "lucide-react";
+import { BarChart3, ChevronsUpDown, LayoutDashboard, LogOut, ShieldCheck, Users } from "lucide-react";
 
 import { useAuth } from "@/hooks/useAuth";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -28,11 +28,8 @@ import {
 } from "@/components/ui/sidebar";
 
 const navItems = [
-  {
-    title: "Dashboard",
-    href: "/admin/dashboard",
-    icon: LayoutDashboard,
-  },
+  { title: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
+  { title: "Staff Management", href: "/admin/staff", icon: Users },
 ];
 
 function getInitials(name: string | undefined, email: string | undefined) {
