@@ -8,7 +8,7 @@ export default function AdminStaffLayout({
   return (
     <AdminShell
       title="Staff Management"
-      description="Add, edit, remove, and prepare profile photos before backend integration."
+      description="Add, edit, remove, and manage staff profiles and photos."
     >
       {children}
     </AdminShell>

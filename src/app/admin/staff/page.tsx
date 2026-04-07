@@ -43,7 +43,7 @@ const emptyStaff: StaffRecord = {
   contactInfo: "",
   status: true,
   imageUrl: "",
-  cropLabel: "No crop applied yet",
+  cropLabel: "No image adjustments saved",
   updatedAt: "",
 };
 
@@ -147,7 +147,7 @@ export default function AdminStaffPage() {
   const seedSavedImageState = (member: StaffRecord) => {
     setSavedImageSrc(member.imageUrl || null);
     setSelectedImageSrc(null);
-    setUploadedFileName(member.imageUrl ? "Existing profile image" : "");
+    setUploadedFileName(member.imageUrl ? "Current profile image" : "");
     setCrop(defaultCrop);
     setZoom(defaultZoom);
     setRotation(defaultRotation);
@@ -362,7 +362,7 @@ export default function AdminStaffPage() {
     setEditingStaff((current) => ({
       ...current,
       imageUrl: "",
-      cropLabel: "No crop applied yet",
+      cropLabel: "No image adjustments saved",
     }));
   };
 
@@ -371,7 +371,7 @@ export default function AdminStaffPage() {
     setEditingStaff((current) => ({
       ...current,
       imageUrl: "",
-      cropLabel: "No crop applied yet",
+      cropLabel: "No image adjustments saved",
     }));
   };
 
@@ -416,10 +416,10 @@ export default function AdminStaffPage() {
         <CardHeader className="flex flex-col gap-4 pb-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="space-y-1.5">
             <div className="flex items-center gap-2">
-              <CardTitle className="text-xl font-semibold text-slate-900">Staff management list</CardTitle>
+              <CardTitle className="text-xl font-semibold text-slate-900">Staff Management</CardTitle>
             </div>
             <CardDescription className="text-sm text-slate-500">
-              Review staff profiles, update details, and manage who appears in the customer flow.
+              Review staff profiles, update details, and control which team members are shown to customers.
             </CardDescription>
           </div>
           <Button className="h-11 bg-slate-900 px-4 text-white shadow-sm hover:bg-slate-800" onClick={openAddDialog}>
@@ -552,8 +552,8 @@ export default function AdminStaffPage() {
                       </div>
 
                       <div className="space-y-1 text-center">
-                        <p className="font-medium text-slate-900">{uploadedFileName || (hasSavedImage ? "Saved profile image" : "Ready for upload")}</p>
-                        <p className="text-sm text-slate-500">{selectedImageSrc ? "Unsaved image changes" : editingStaff.cropLabel || "No crop applied yet"}</p>
+                        <p className="font-medium text-slate-900">{uploadedFileName || (hasSavedImage ? "Profile image saved" : "No image selected")}</p>
+                        <p className="text-sm text-slate-500">{selectedImageSrc ? "Unsaved image changes" : editingStaff.cropLabel || "No image adjustments saved"}</p>
                       </div>
                     </div>
                   </div>
@@ -675,8 +675,8 @@ export default function AdminStaffPage() {
 
                   <div className="flex flex-col gap-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 md:flex-row md:items-center md:justify-between">
                     <div className="space-y-1">
-                      <Label htmlFor="staff-status" className="text-sm font-medium text-slate-900">Show in customer flow</Label>
-                      <p className="text-sm text-slate-500">Control whether this staff member appears in the kiosk selection list.</p>
+                      <Label htmlFor="staff-status" className="text-sm font-medium text-slate-900">Show to customers</Label>
+                      <p className="text-sm text-slate-500">Control whether this staff member appears in the customer-facing staff selection.</p>
                     </div>
                     <Switch
                       id="staff-status"
