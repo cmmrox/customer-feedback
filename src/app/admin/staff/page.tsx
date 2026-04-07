@@ -225,7 +225,7 @@ export default function AdminStaffPage() {
         pixelCrop: croppedAreaPixels,
         rotation,
         outputWidth: 320,
-        outputHeight: 400,
+        outputHeight: 320,
       });
 
       setSavedImageSrc(croppedDataUrl);
@@ -404,14 +404,14 @@ export default function AdminStaffPage() {
 
                   <div className="overflow-hidden rounded-2xl border border-dashed border-slate-300 bg-white p-4">
                     <div className="space-y-3">
-                      <div className="relative mx-auto flex aspect-[4/5] w-full max-w-[220px] items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-slate-100">
+                      <div className="relative mx-auto flex aspect-square w-full max-w-[220px] items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-slate-100">
                         {selectedImageSrc ? (
                           <Cropper
                             image={selectedImageSrc}
                             crop={crop}
                             zoom={zoom}
                             rotation={rotation}
-                            aspect={4 / 5}
+                            aspect={1}
                             cropShape="rect"
                             showGrid
                             onCropChange={setCrop}
@@ -423,7 +423,7 @@ export default function AdminStaffPage() {
                           <img src={savedImageSrc ?? undefined} alt={editingStaff.name || "Saved preview"} className="h-full w-full object-cover" />
                         ) : (
                           <div className="flex flex-col items-center gap-3 px-4 text-center text-slate-500">
-                            <Avatar className="h-20 w-16 rounded-2xl border border-slate-200">
+                            <Avatar className="h-20 w-20 rounded-2xl border border-slate-200">
                               <AvatarFallback className="rounded-2xl bg-slate-100 text-slate-700">
                                 <UserRound className="size-8" />
                               </AvatarFallback>
@@ -478,7 +478,7 @@ export default function AdminStaffPage() {
                       </div>
 
                       <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500">
-                        Drag the image inside the frame to reposition it. Use zoom and rotation controls to match the final card preview.
+                        Drag the image inside the square frame to reposition it. This crop matches the frontend staff card image ratio.
                       </div>
                     </div>
                   ) : null}
