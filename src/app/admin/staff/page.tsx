@@ -1,8 +1,8 @@
-
 "use client";
 
-import { useMemo, useState } from "react";
-import { Camera, MoreHorizontal, Pencil, Plus, Search, Trash2, Upload, UserRound } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import Cropper, { type Area, type Point } from "react-easy-crop";
+import { Minus, MoreHorizontal, Pencil, Plus, RotateCcw, RotateCw, Search, Trash2, Upload, UserRound, ZoomIn, ZoomOut } from "lucide-react";
 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -14,9 +14,11 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import { getCroppedImg } from "@/lib/image-crop";
 
 interface StaffRecord {
   id: string;
@@ -47,6 +49,10 @@ const emptyStaff: StaffRecord = {
   updatedAt: "",
 };
 
+const defaultCrop: Point = { x: 0, y: 0 };
+const defaultZoom = 1;
+const defaultRotation = 0;
+
 function initials(name: string) {
   return name
     .split(/\s+/)
@@ -61,11 +67,31 @@ export default function AdminStaffPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [isCropOpen, setIsCropOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [editingStaff, setEditingStaff] = useState<StaffRecord>(emptyStaff);
   const [pendingDelete, setPendingDelete] = useState<StaffRecord | null>(null);
-  const [mockUploadName, setMockUploadName] = useState<string>("");
+
+  const [uploadedFileName, setUploadedFileName] = useState("");
+  const [selectedImageSrc, setSelectedImageSrc] = useState<string | null>(null);
+  const [savedImageSrc, setSavedImageSrc] = useState<string | null>(null);
+  const [crop, setCrop] = useState<Point>(defaultCrop);
+  const [zoom, setZoom] = useState(defaultZoom);
+  const [rotation, setRotation] = useState(defaultRotation);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
+  const [isImageDirty, setIsImageDirty] = useState(false);
+  const [isSavingImage, setIsSavingImage] = useState(false);
+  const [imageError, setImageError] = useState<string>("");
+
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const tempObjectUrlRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (tempObjectUrlRef.current) {
+        URL.revokeObjectURL(tempObjectUrlRef.current);
+      }
+    };
+  }, []);
 
   const filteredStaff = useMemo(() => {
     return staff.filter((member) => {
@@ -75,16 +101,69 @@ export default function AdminStaffPage() {
     });
   }, [search, staff, statusFilter]);
 
+  const hasSavedImage = Boolean(savedImageSrc);
+  const showUploadAction = !selectedImageSrc && !hasSavedImage && !isImageDirty;
+  const showPendingImageActions = Boolean(selectedImageSrc) && isImageDirty;
+  const showRemoveAction = hasSavedImage && !isImageDirty;
+
+  const resetImageEditor = (options?: { keepSavedImage?: boolean }) => {
+    if (!options?.keepSavedImage) {
+      setSavedImageSrc(null);
+    }
+    if (tempObjectUrlRef.current) {
+      URL.revokeObjectURL(tempObjectUrlRef.current);
+      tempObjectUrlRef.current = null;
+    }
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+    setSelectedImageSrc(null);
+    setUploadedFileName("");
+    setCrop(defaultCrop);
+    setZoom(defaultZoom);
+    setRotation(defaultRotation);
+    setCroppedAreaPixels(null);
+    setIsImageDirty(false);
+    setIsSavingImage(false);
+    setImageError("");
+  };
+
+  const seedSavedImageState = (member: StaffRecord) => {
+    setSavedImageSrc(member.imageUrl || null);
+    setSelectedImageSrc(null);
+    setUploadedFileName(member.imageUrl ? "Existing profile image" : "");
+    setCrop(defaultCrop);
+    setZoom(defaultZoom);
+    setRotation(defaultRotation);
+    setCroppedAreaPixels(null);
+    setIsImageDirty(false);
+    setIsSavingImage(false);
+    setImageError("");
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
   const openAddDialog = () => {
-    setEditingStaff({ ...emptyStaff, id: `mock-${Date.now()}` });
-    setMockUploadName("");
+    const nextStaff = { ...emptyStaff, id: `mock-${Date.now()}` };
+    setEditingStaff(nextStaff);
+    resetImageEditor();
     setIsFormOpen(true);
   };
 
   const openEditDialog = (member: StaffRecord) => {
     setEditingStaff({ ...member });
-    setMockUploadName(member.imageUrl ? "Existing profile image" : "");
+    resetImageEditor();
+    seedSavedImageState(member);
     setIsFormOpen(true);
+  };
+
+  const handleDialogOpenChange = (open: boolean) => {
+    setIsFormOpen(open);
+    if (!open) {
+      resetImageEditor();
+      setEditingStaff(emptyStaff);
+    }
   };
 
   const saveStaff = () => {
@@ -93,7 +172,7 @@ export default function AdminStaffPage() {
       const payload = { ...editingStaff, updatedAt: "2026-04-06" };
       return exists ? current.map((member) => (member.id === payload.id ? payload : member)) : [payload, ...current];
     });
-    setIsFormOpen(false);
+    handleDialogOpenChange(false);
   };
 
   const confirmDelete = () => {
@@ -103,13 +182,91 @@ export default function AdminStaffPage() {
     setIsDeleteOpen(false);
   };
 
-  const applyMockCrop = (preset: string) => {
+  const openFilePicker = () => {
+    setImageError("");
+    fileInputRef.current?.click();
+  };
+
+  const handleImageSelected = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setImageError("Please choose an image file.");
+      return;
+    }
+
+    if (tempObjectUrlRef.current) {
+      URL.revokeObjectURL(tempObjectUrlRef.current);
+    }
+
+    const objectUrl = URL.createObjectURL(file);
+    tempObjectUrlRef.current = objectUrl;
+
+    setSelectedImageSrc(objectUrl);
+    setUploadedFileName(file.name);
+    setCrop(defaultCrop);
+    setZoom(defaultZoom);
+    setRotation(defaultRotation);
+    setCroppedAreaPixels(null);
+    setIsImageDirty(true);
+    setSavedImageSrc(null);
+    setImageError("");
+  };
+
+  const handleSaveImage = async () => {
+    if (!selectedImageSrc || !croppedAreaPixels) return;
+
+    try {
+      setIsSavingImage(true);
+      setImageError("");
+      const croppedDataUrl = await getCroppedImg({
+        imageSrc: selectedImageSrc,
+        pixelCrop: croppedAreaPixels,
+        rotation,
+        outputWidth: 320,
+        outputHeight: 400,
+      });
+
+      setSavedImageSrc(croppedDataUrl);
+      setSelectedImageSrc(null);
+      setIsImageDirty(false);
+      setEditingStaff((current) => ({
+        ...current,
+        imageUrl: croppedDataUrl,
+        cropLabel: `Custom crop · Zoom ${zoom.toFixed(1)}x · Rotation ${Math.round(rotation)}°`,
+      }));
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+      if (tempObjectUrlRef.current) {
+        URL.revokeObjectURL(tempObjectUrlRef.current);
+        tempObjectUrlRef.current = null;
+      }
+    } catch (error) {
+      console.error("Failed to generate cropped image preview", error);
+      setImageError("Could not generate the cropped preview. Please try another image.");
+    } finally {
+      setIsSavingImage(false);
+    }
+  };
+
+  const handleClearPendingImage = () => {
+    resetImageEditor({ keepSavedImage: false });
     setEditingStaff((current) => ({
       ...current,
-      imageUrl: current.imageUrl || "/images/staff/default-staff.svg",
-      cropLabel: preset,
+      imageUrl: "",
+      cropLabel: "No crop applied yet",
     }));
-    setIsCropOpen(false);
+  };
+
+  const handleRemoveSavedImage = () => {
+    resetImageEditor({ keepSavedImage: false });
+    setEditingStaff((current) => ({
+      ...current,
+      imageUrl: "",
+      cropLabel: "No crop applied yet",
+    }));
   };
 
   return (
@@ -224,7 +381,7 @@ export default function AdminStaffPage() {
         </CardContent>
       </Card>
 
-      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+      <Dialog open={isFormOpen} onOpenChange={handleDialogOpenChange}>
         <DialogContent className="max-w-[calc(100vw-1.5rem)] sm:max-w-[1100px] overflow-hidden p-0">
           <DialogHeader className="border-b border-slate-200 px-6 py-5 text-left">
             <DialogTitle>{staff.some((member) => member.id === editingStaff.id) ? "Edit staff member" : "Add staff member"}</DialogTitle>
@@ -233,46 +390,126 @@ export default function AdminStaffPage() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="grid max-h-[82vh] gap-0 overflow-y-auto md:grid-cols-[340px_minmax(0,1fr)] xl:grid-cols-[380px_minmax(0,1fr)]">
+          <div className="grid max-h-[82vh] gap-0 overflow-y-auto md:grid-cols-[360px_minmax(0,1fr)] xl:grid-cols-[400px_minmax(0,1fr)]">
             <div className="border-b border-slate-200 bg-slate-50/70 px-5 py-5 md:border-b-0 md:border-r md:px-6 md:py-6">
               <Card className="border-slate-200 shadow-sm">
                 <CardHeader className="space-y-2 pb-3">
                   <CardTitle className="text-base">Profile picture</CardTitle>
                   <CardDescription>
-                    Mock flow for upload, crop, reposition, and preview before we build the backend save flow.
+                    Upload an image, adjust the crop inline, then save the image preview before saving the full staff record.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-5 text-center">
-                    <Avatar className="h-28 w-28 rounded-2xl border border-slate-200">
-                      <AvatarImage src={editingStaff.imageUrl || "/images/staff/default-staff.svg"} alt={editingStaff.name || "Preview"} />
-                      <AvatarFallback className="rounded-2xl bg-slate-100 text-slate-700">
-                        <UserRound className="size-10" />
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <p className="font-medium text-slate-900">{mockUploadName || "No image uploaded yet"}</p>
-                      <p className="text-sm text-slate-500">{editingStaff.cropLabel || "Square crop preview recommended for kiosk staff card."}</p>
+                  <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageSelected} />
+
+                  <div className="overflow-hidden rounded-2xl border border-dashed border-slate-300 bg-white p-4">
+                    <div className="space-y-3">
+                      <div className="relative mx-auto flex aspect-[4/5] w-full max-w-[220px] items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-slate-100">
+                        {selectedImageSrc ? (
+                          <Cropper
+                            image={selectedImageSrc}
+                            crop={crop}
+                            zoom={zoom}
+                            rotation={rotation}
+                            aspect={4 / 5}
+                            cropShape="rect"
+                            showGrid
+                            onCropChange={setCrop}
+                            onZoomChange={setZoom}
+                            onRotationChange={setRotation}
+                            onCropComplete={(_, croppedPixels) => setCroppedAreaPixels(croppedPixels)}
+                          />
+                        ) : hasSavedImage ? (
+                          <img src={savedImageSrc ?? undefined} alt={editingStaff.name || "Saved preview"} className="h-full w-full object-cover" />
+                        ) : (
+                          <div className="flex flex-col items-center gap-3 px-4 text-center text-slate-500">
+                            <Avatar className="h-20 w-16 rounded-2xl border border-slate-200">
+                              <AvatarFallback className="rounded-2xl bg-slate-100 text-slate-700">
+                                <UserRound className="size-8" />
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <p className="font-medium text-slate-700">No image uploaded yet</p>
+                              <p className="text-xs text-slate-500">Upload a photo to crop, zoom, rotate, and save it here.</p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="space-y-1 text-center">
+                        <p className="font-medium text-slate-900">{uploadedFileName || (hasSavedImage ? "Saved profile image" : "Ready for upload")}</p>
+                        <p className="text-sm text-slate-500">{selectedImageSrc ? "Unsaved image changes" : editingStaff.cropLabel || "No crop applied yet"}</p>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-1">
-                    <Button variant="outline" onClick={() => { setMockUploadName("new-profile-photo.jpg"); setIsCropOpen(true); }}>
-                      <Upload className="mr-2 size-4" /> Upload / Replace image
-                    </Button>
-                    <Button variant="outline" onClick={() => setIsCropOpen(true)}>
-                      <Camera className="mr-2 size-4" /> Adjust crop
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      className="w-full sm:col-span-2 md:col-span-1 text-slate-600"
-                      onClick={() => {
-                        setMockUploadName("");
-                        setEditingStaff((current) => ({ ...current, imageUrl: "/images/staff/default-staff.svg", cropLabel: "No crop applied yet" }));
-                      }}
-                    >
-                      Remove preview image
-                    </Button>
+                  {selectedImageSrc ? (
+                    <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4">
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-sm font-medium text-slate-700">
+                          <span>Zoom</span>
+                          <span>{zoom.toFixed(1)}x</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <Button type="button" variant="outline" size="icon" className="size-9" onClick={() => setZoom((current) => Math.max(1, +(current - 0.1).toFixed(2)))}>
+                            <ZoomOut className="size-4" />
+                          </Button>
+                          <Slider value={[zoom]} min={1} max={3} step={0.1} onValueChange={(value) => setZoom(value[0] ?? 1)} className="flex-1" />
+                          <Button type="button" variant="outline" size="icon" className="size-9" onClick={() => setZoom((current) => Math.min(3, +(current + 0.1).toFixed(2)))}>
+                            <ZoomIn className="size-4" />
+                          </Button>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-sm font-medium text-slate-700">
+                          <span>Rotation</span>
+                          <span>{Math.round(rotation)}°</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <Button type="button" variant="outline" size="icon" className="size-9" onClick={() => setRotation((current) => current - 90)}>
+                            <RotateCcw className="size-4" />
+                          </Button>
+                          <Slider value={[rotation]} min={-180} max={180} step={1} onValueChange={(value) => setRotation(value[0] ?? 0)} className="flex-1" />
+                          <Button type="button" variant="outline" size="icon" className="size-9" onClick={() => setRotation((current) => current + 90)}>
+                            <RotateCw className="size-4" />
+                          </Button>
+                        </div>
+                      </div>
+
+                      <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500">
+                        Drag the image inside the frame to reposition it. Use zoom and rotation controls to match the final card preview.
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {imageError ? (
+                    <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-600">{imageError}</div>
+                  ) : null}
+
+                  <div className="grid gap-2">
+                    {showUploadAction ? (
+                      <Button type="button" variant="outline" onClick={openFilePicker}>
+                        <Upload className="mr-2 size-4" /> Upload / Replace image
+                      </Button>
+                    ) : null}
+
+                    {showPendingImageActions ? (
+                      <>
+                        <Button type="button" onClick={handleSaveImage} disabled={isSavingImage || !croppedAreaPixels}>
+                          {isSavingImage ? "Saving image..." : "Save image"}
+                        </Button>
+                        <Button type="button" variant="outline" onClick={handleClearPendingImage}>
+                          <Minus className="mr-2 size-4" /> Clear
+                        </Button>
+                      </>
+                    ) : null}
+
+                    {showRemoveAction ? (
+                      <Button type="button" variant="ghost" className="w-full text-slate-600" onClick={handleRemoveSavedImage}>
+                        Remove image
+                      </Button>
+                    ) : null}
                   </div>
                 </CardContent>
               </Card>
@@ -286,7 +523,7 @@ export default function AdminStaffPage() {
                 </CardHeader>
                 <CardContent className="space-y-5">
                   <div className="grid gap-4 lg:grid-cols-2">
-                    <div className="space-y-2 md:col-span-2">
+                    <div className="space-y-2 lg:col-span-2">
                       <Label htmlFor="staff-name">Staff name</Label>
                       <Input
                         id="staff-name"
@@ -343,53 +580,9 @@ export default function AdminStaffPage() {
           </div>
 
           <DialogFooter className="border-t border-slate-200 bg-white px-5 py-4 sm:px-6 sm:justify-end">
-            <Button variant="outline" onClick={() => setIsFormOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => handleDialogOpenChange(false)}>Cancel</Button>
             <Button onClick={saveStaff}>Save Preview</Button>
           </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={isCropOpen} onOpenChange={setIsCropOpen}>
-        <DialogContent className="max-w-3xl">
-          <DialogHeader>
-            <DialogTitle>Adjust profile crop</DialogTitle>
-            <DialogDescription>
-              UI-only crop concept. Later this will become the real crop/position tool before saving a resized profile image.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
-            <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6">
-              <div className="flex aspect-square items-center justify-center rounded-2xl border border-slate-200 bg-white text-center text-slate-500 whitespace-pre-line">
-                Drag / zoom crop area preview
-(Facebook-style crop flow will go here)
-              </div>
-            </div>
-            <div className="space-y-4">
-              <Card className="border-slate-200 shadow-sm">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base">Crop presets</CardTitle>
-                  <CardDescription>Choose the framing style you want to preview.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <Button variant="outline" className="w-full justify-start" onClick={() => applyMockCrop("Centered face crop")}>Centered face crop</Button>
-                  <Button variant="outline" className="w-full justify-start" onClick={() => applyMockCrop("Head and shoulders crop")}>Head and shoulders</Button>
-                  <Button variant="outline" className="w-full justify-start" onClick={() => applyMockCrop("Zoomed portrait crop")}>Zoomed portrait</Button>
-                </CardContent>
-              </Card>
-              <Card className="border-slate-200 shadow-sm">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base">Final output</CardTitle>
-                  <CardDescription>Store only the kiosk-ready image size later, not the original upload.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-                    Planned export: square image, resized for frontend usage only.
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
         </DialogContent>
       </Dialog>
 
