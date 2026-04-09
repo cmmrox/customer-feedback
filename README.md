@@ -258,3 +258,91 @@ The documentation in this repository is now aligned to the **current implementat
 - `DATABASE_SETUP.md` — database and Prisma setup
 - `TASKS.md` — implemented work, pending work, and future enhancements
 - `CLAUDE.md` — contributor/developer guidance for this repository
+
+---
+
+## Docker release and deployment
+
+This project is prepared for Docker Hub releases using semantic version tags plus the moving `latest` tag.
+
+### Canonical version source
+
+The application version is stored in `package.json`.
+
+Example:
+```json
+"version": "1.0.0"
+```
+
+### Release tags
+
+Each release should publish:
+- `cmmrox/customer-feedback:<exact-version>`
+- `cmmrox/customer-feedback:latest`
+
+For the first production release:
+- `cmmrox/customer-feedback:1.0.0`
+- `cmmrox/customer-feedback:latest`
+
+### Build and push to Docker Hub
+
+From the project root:
+
+```bash
+chmod +x scripts/docker-release.sh
+./scripts/docker-release.sh
+```
+
+That script will:
+- read the version from `package.json`
+- build the image
+- tag the image with the exact version
+- tag the same image as `latest`
+- push both tags to Docker Hub
+
+If you want to publish a different explicit version after updating `package.json`:
+
+```bash
+./scripts/docker-release.sh 1.0.1
+```
+
+### Production deployment with Docker Compose
+
+The production compose file pulls the image directly from Docker Hub instead of building from source.
+
+Default behavior:
+```bash
+docker compose -f docker-compose-app.yml --env-file .env.prod pull
+docker compose -f docker-compose-app.yml --env-file .env.prod up -d
+```
+
+To deploy a specific version instead of `latest`:
+
+```bash
+APP_IMAGE_TAG=1.0.0 docker compose -f docker-compose-app.yml --env-file .env.prod pull
+APP_IMAGE_TAG=1.0.0 docker compose -f docker-compose-app.yml --env-file .env.prod up -d
+```
+
+### Uploaded staff images
+
+Staff images are written to `/app/uploads` in the container. The compose file mounts a named Docker volume so uploaded images survive container restarts and image updates.
+
+### Database migrations
+
+Run Prisma migrations separately during deployment if needed:
+
+```bash
+docker compose -f docker-compose-app.yml --env-file .env.prod exec app npx prisma migrate deploy
+```
+
+### Future version management policy
+
+Use semantic versioning:
+- `PATCH` (`1.0.1`) for bug fixes
+- `MINOR` (`1.1.0`) for backward-compatible features
+- `MAJOR` (`2.0.0`) for breaking changes
+
+Recommended production practice:
+- publish both `latest` and exact version tags
+- deploy exact version tags in production for safer rollbacks
+- keep `latest` for convenience and quick smoke deployments

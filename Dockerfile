@@ -1,35 +1,37 @@
-# Stage 1: Build the application
-FROM node:18-alpine AS builder
-
+FROM node:20-alpine AS deps
 WORKDIR /app
-
-# Copy dependency files and install dependencies
+RUN apk add --no-cache libc6-compat
 COPY package*.json ./
+COPY prisma ./prisma
 RUN npm install
-
-# Copy the rest of the application code
-COPY . .
-
-# Generate Prisma Client
 RUN npx prisma generate
 
-# Build the Next.js app (adjust if you have custom build scripts)
+FROM node:20-alpine AS builder
+WORKDIR /app
+RUN apk add --no-cache libc6-compat
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/prisma ./prisma
+COPY . .
+ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
-# Stage 2: Run the application with only production dependencies
-FROM node:18-alpine AS runner
-
+FROM node:20-alpine AS runner
 WORKDIR /app
+RUN apk add --no-cache libc6-compat
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV PORT=3000
+ENV HOSTNAME=0.0.0.0
 
-# Copy only the necessary files from the builder stage
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/next.config.ts ./next.config.ts
 
-# Expose the port your app runs on (default: 3000)
+RUN mkdir -p /app/uploads/staff
+
 EXPOSE 3000
 
-# Start the app
 CMD ["npm", "start"]
