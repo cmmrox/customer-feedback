@@ -2,7 +2,8 @@ import { mkdir, writeFile, unlink } from "node:fs/promises";
 import path from "node:path";
 import crypto from "node:crypto";
 
-const STAFF_UPLOAD_DIR = path.join(process.cwd(), "public", "uploads", "staff");
+const STAFF_UPLOAD_ROOT = process.env.UPLOAD_DIR?.trim() || path.join(process.cwd(), "public", "uploads");
+const STAFF_UPLOAD_DIR = path.join(STAFF_UPLOAD_ROOT, "staff");
 
 function parseDataUrl(dataUrl: string) {
   const match = dataUrl.match(/^data:(image\/(png|jpeg|jpg|webp));base64,(.+)$/);
@@ -45,7 +46,8 @@ export async function removeStaffImageByUrl(imageUrl: string | null | undefined)
     return;
   }
 
-  const absolutePath = path.join(process.cwd(), "public", imageUrl.replace(/^\//, ""));
+  const relativePath = imageUrl.replace(/^\/uploads\//, "");
+  const absolutePath = path.join(STAFF_UPLOAD_ROOT, relativePath);
 
   try {
     await unlink(absolutePath);
