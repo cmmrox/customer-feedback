@@ -294,11 +294,15 @@ export default function AdminDashboard() {
   }, []);
 
   useEffect(() => {
+    setNegativeFeedbackPage(1);
+  }, [selectedMonth]);
+
+  useEffect(() => {
     async function fetchNegativeFeedback() {
       setIsNegativeFeedbackLoading(true);
       setNegativeFeedbackError(null);
       try {
-        const res = await fetch(`/api/admin/dashboard/negative-feedback?page=${negativeFeedbackPage}&pageSize=${NEGATIVE_FEEDBACK_PAGE_SIZE}`);
+        const res = await fetch(`/api/admin/dashboard/negative-feedback?month=${encodeURIComponent(selectedMonth)}&page=${negativeFeedbackPage}&pageSize=${NEGATIVE_FEEDBACK_PAGE_SIZE}`);
         if (!res.ok) throw new Error("Failed to fetch recent negative feedback");
         const data: NegativeFeedbackResponse = await res.json();
         setNegativeFeedbackItems(data.items);
@@ -316,7 +320,7 @@ export default function AdminDashboard() {
     }
 
     fetchNegativeFeedback();
-  }, [negativeFeedbackPage]);
+  }, [negativeFeedbackPage, selectedMonth]);
 
   const handleExportExcel = async (): Promise<void> => {
     setIsExportingExcel(true);

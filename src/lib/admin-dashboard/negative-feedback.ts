@@ -1,7 +1,11 @@
+import { startOfMonth, endOfMonth } from "date-fns";
+import { Prisma } from "@prisma/client";
+
 import { prisma } from "@/lib/db";
 
 const DEFAULT_PAGE_SIZE = 10;
 const MAX_PAGE_SIZE = 50;
+const MONTH_PATTERN = /^[A-Za-z]+\s+\d{4}$/;
 
 export interface NegativeFeedbackListItem {
   id: string;
@@ -18,6 +22,13 @@ export interface NegativeFeedbackListResult {
   totalPages: number;
 }
 
+export class InvalidNegativeFeedbackMonthError extends Error {
+  constructor(message = "Invalid month format") {
+    super(message);
+    this.name = "InvalidNegativeFeedbackMonthError";
+  }
+}
+
 export function normalizePositiveInteger(value: string | null, fallback: number) {
   const parsed = Number(value);
   if (!Number.isFinite(parsed) || parsed < 1) {
@@ -27,21 +38,40 @@ export function normalizePositiveInteger(value: string | null, fallback: number)
   return Math.floor(parsed);
 }
 
+function parseMonthRange(month: string): Prisma.DateTimeFilter<"Feedback"> {
+  if (!MONTH_PATTERN.test(month)) {
+    throw new InvalidNegativeFeedbackMonthError();
+  }
+
+  const parsed = new Date(`${month} 01`);
+
+  if (Number.isNaN(parsed.getTime())) {
+    throw new InvalidNegativeFeedbackMonthError();
+  }
+
+  return {
+    gte: startOfMonth(parsed),
+    lte: endOfMonth(parsed),
+  };
+}
+
 export async function getPaginatedNegativeFeedback(options: {
   page?: number;
   pageSize?: number;
+  month?: string;
 } = {}): Promise<NegativeFeedbackListResult> {
   const page = options.page && options.page > 0 ? Math.floor(options.page) : 1;
   const requestedPageSize = options.pageSize && options.pageSize > 0 ? Math.floor(options.pageSize) : DEFAULT_PAGE_SIZE;
   const pageSize = Math.min(requestedPageSize, MAX_PAGE_SIZE);
-  const now = new Date();
 
-  const where = {
+  const timestamp: Prisma.DateTimeFilter<"Feedback"> = options.month
+    ? parseMonthRange(options.month)
+    : { lte: new Date() };
+
+  const where: Prisma.FeedbackWhereInput = {
     overallRating: "NOT_SATISFIED",
-    timestamp: {
-      lte: now,
-    },
-  } as const;
+    timestamp,
+  };
 
   const totalItems = await prisma.feedback.count({ where });
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
