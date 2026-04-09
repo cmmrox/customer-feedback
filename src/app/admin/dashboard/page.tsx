@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { ArrowDownRight, ArrowUpRight, FileSpreadsheet, FileText } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { AlertCircle, ArrowDownRight, ArrowUpRight, Clock3, FileSpreadsheet, FileText } from "lucide-react";
 import ExcelJS from "exceljs";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -37,6 +37,7 @@ function getLast12Months(): string[] {
 }
 
 const months = getLast12Months();
+const NEGATIVE_FEEDBACK_PAGE_SIZE = 10;
 
 interface SelectionTrend {
   month: string;
@@ -54,6 +55,21 @@ interface TrendData {
 interface DissatisfactionTrend {
   month: string;
   count: number;
+}
+
+interface NegativeFeedbackItem {
+  id: string;
+  timestamp: string;
+  overallRating: string;
+  reasons: string[];
+}
+
+interface NegativeFeedbackResponse {
+  items: NegativeFeedbackItem[];
+  page: number;
+  pageSize: number;
+  totalItems: number;
+  totalPages: number;
 }
 
 function SummaryCard({
@@ -119,6 +135,23 @@ function SectionCard({
   );
 }
 
+function formatFeedbackDate(timestamp: string) {
+  return new Intl.DateTimeFormat(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+  }).format(new Date(timestamp));
+}
+
+function formatFeedbackTime(timestamp: string) {
+  return new Intl.DateTimeFormat(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true,
+  }).format(new Date(timestamp));
+}
+
 export default function AdminDashboard() {
   const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth());
   const [staffSelections, setStaffSelections] = useState<StaffSelection[]>([]);
@@ -146,6 +179,13 @@ export default function AdminDashboard() {
 
   const [isExportingExcel, setIsExportingExcel] = useState(false);
   const [isExportingPDF, setIsExportingPDF] = useState(false);
+
+  const [negativeFeedbackPage, setNegativeFeedbackPage] = useState(1);
+  const [negativeFeedbackItems, setNegativeFeedbackItems] = useState<NegativeFeedbackItem[]>([]);
+  const [negativeFeedbackTotalItems, setNegativeFeedbackTotalItems] = useState(0);
+  const [negativeFeedbackTotalPages, setNegativeFeedbackTotalPages] = useState(1);
+  const [isNegativeFeedbackLoading, setIsNegativeFeedbackLoading] = useState(false);
+  const [negativeFeedbackError, setNegativeFeedbackError] = useState<string | null>(null);
 
   const fetchSelectionTrends = useCallback(async () => {
     setIsTrendsLoading(true);
@@ -253,32 +293,61 @@ export default function AdminDashboard() {
     fetchDissatisfactionTrends();
   }, []);
 
+  useEffect(() => {
+    setNegativeFeedbackPage(1);
+  }, [selectedMonth]);
+
+  useEffect(() => {
+    async function fetchNegativeFeedback() {
+      setIsNegativeFeedbackLoading(true);
+      setNegativeFeedbackError(null);
+      try {
+        const res = await fetch(`/api/admin/dashboard/negative-feedback?month=${encodeURIComponent(selectedMonth)}&page=${negativeFeedbackPage}&pageSize=${NEGATIVE_FEEDBACK_PAGE_SIZE}`);
+        if (!res.ok) throw new Error("Failed to fetch recent negative feedback");
+        const data: NegativeFeedbackResponse = await res.json();
+        setNegativeFeedbackItems(data.items);
+        setNegativeFeedbackTotalItems(data.totalItems);
+        setNegativeFeedbackTotalPages(data.totalPages);
+      } catch (err) {
+        console.error(err);
+        setNegativeFeedbackError("Could not load recent negative feedback");
+        setNegativeFeedbackItems([]);
+        setNegativeFeedbackTotalItems(0);
+        setNegativeFeedbackTotalPages(1);
+      } finally {
+        setIsNegativeFeedbackLoading(false);
+      }
+    }
+
+    fetchNegativeFeedback();
+  }, [negativeFeedbackPage, selectedMonth]);
+
   const handleExportExcel = async (): Promise<void> => {
     setIsExportingExcel(true);
     try {
       if (!staffSelections.length) return;
       const workbook = new ExcelJS.Workbook();
       const worksheet = workbook.addWorksheet("Staff Selections");
+
       worksheet.columns = [
-        { header: "Staff Name", key: "name", width: 28 },
-        { header: "Times Selected", key: "count", width: 18 },
+        { header: "Staff Name", key: "name", width: 30 },
+        { header: "Times Selected", key: "count", width: 20 },
       ];
+
       staffSelections.forEach((staff) => {
         worksheet.addRow({ name: staff.name, count: staff.count });
       });
-      worksheet.getRow(1).font = { bold: true };
+
       const buffer = await workbook.xlsx.writeBuffer();
       const blob = new Blob([buffer], {
         type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       });
-      const url = window.URL.createObjectURL(blob);
+      const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.setAttribute("download", `staff-selections-${selectedMonth.replace(/\s/g, "-")}.xlsx`);
-      document.body.appendChild(link);
+      link.download = `staff-selections-${selectedMonth.replace(/\s/g, "-")}.xlsx`;
       link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      URL.revokeObjectURL(url);
     } catch (err) {
       console.error("Excel export failed:", err);
       alert("Failed to export Excel file.");
@@ -311,6 +380,16 @@ export default function AdminDashboard() {
       setIsExportingPDF(false);
     }
   };
+
+  const negativeFeedbackRangeLabel = useMemo(() => {
+    if (negativeFeedbackTotalItems === 0 || negativeFeedbackItems.length === 0) {
+      return "No records";
+    }
+
+    const start = (negativeFeedbackPage - 1) * NEGATIVE_FEEDBACK_PAGE_SIZE + 1;
+    const end = start + negativeFeedbackItems.length - 1;
+    return `Showing ${start}-${end} of ${negativeFeedbackTotalItems}`;
+  }, [negativeFeedbackItems.length, negativeFeedbackPage, negativeFeedbackTotalItems]);
 
   return (
     <div className="space-y-6">
@@ -355,6 +434,101 @@ export default function AdminDashboard() {
         <SummaryCard title="Monthly Bad" description={`Negative feedback in ${selectedMonth}.`} value={dissatisfactionCount} accentClasses="text-rose-700" loading={isDissatisfactionLoading} error={dissatisfactionError} tone="bad" />
       </div>
 
+      <SectionCard
+        title="Recent Negative Feedback"
+        description="Latest negative feedback records with exact submission time for quick investigation."
+      >
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2 text-sm text-slate-500">
+              <Clock3 className="size-4 text-rose-500" />
+              <span>{negativeFeedbackRangeLabel}</span>
+            </div>
+            <Badge variant="secondary" className="w-fit bg-rose-50 text-rose-700">
+              <AlertCircle className="mr-1 size-3.5" />
+              Negative Only
+            </Badge>
+          </div>
+
+          <div className="overflow-hidden rounded-2xl border border-slate-100 bg-slate-50/60">
+            <Table>
+              <TableHeader>
+                <TableRow className="border-slate-200 hover:bg-transparent">
+                  <TableHead className="text-slate-500">Date</TableHead>
+                  <TableHead className="text-slate-500">Time</TableHead>
+                  <TableHead className="text-slate-500">Reason(s)</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isNegativeFeedbackLoading ? (
+                  Array.from({ length: 4 }).map((_, index) => (
+                    <TableRow key={`loading-${index}`} className="border-slate-200">
+                      <TableCell className="py-4 text-sm text-slate-400">Loading…</TableCell>
+                      <TableCell className="py-4 text-sm text-slate-400">Loading…</TableCell>
+                      <TableCell className="py-4 text-sm text-slate-400">Loading…</TableCell>
+                    </TableRow>
+                  ))
+                ) : negativeFeedbackError ? (
+                  <TableRow className="border-slate-200">
+                    <TableCell colSpan={3} className="py-8 text-center text-sm text-rose-600">
+                      {negativeFeedbackError}
+                    </TableCell>
+                  </TableRow>
+                ) : negativeFeedbackItems.length === 0 ? (
+                  <TableRow className="border-slate-200">
+                    <TableCell colSpan={3} className="py-8 text-center text-sm text-slate-500">
+                      No negative feedback recorded yet.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  negativeFeedbackItems.map((item) => (
+                    <TableRow key={item.id} className="border-slate-200">
+                      <TableCell className="font-medium text-slate-900">{formatFeedbackDate(item.timestamp)}</TableCell>
+                      <TableCell className="font-mono text-sm text-slate-700">{formatFeedbackTime(item.timestamp)}</TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-2">
+                          {item.reasons.length > 0 ? (
+                            item.reasons.map((reason) => (
+                              <Badge key={`${item.id}-${reason}`} variant="secondary" className="bg-white text-slate-700 border border-slate-200">
+                                {reason}
+                              </Badge>
+                            ))
+                          ) : (
+                            <span className="text-sm text-slate-500">No reason selected</span>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-slate-500">Page {negativeFeedbackPage} of {Math.max(negativeFeedbackTotalPages, 1)}</p>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                className="border-slate-200 bg-white text-slate-700"
+                onClick={() => setNegativeFeedbackPage((current) => Math.max(1, current - 1))}
+                disabled={isNegativeFeedbackLoading || negativeFeedbackPage <= 1}
+              >
+                Previous
+              </Button>
+              <Button
+                variant="outline"
+                className="border-slate-200 bg-white text-slate-700"
+                onClick={() => setNegativeFeedbackPage((current) => Math.min(negativeFeedbackTotalPages, current + 1))}
+                disabled={isNegativeFeedbackLoading || negativeFeedbackPage >= negativeFeedbackTotalPages}
+              >
+                Next
+              </Button>
+            </div>
+          </div>
+        </div>
+      </SectionCard>
+
       <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
         <SectionCard title="Staff member selections" description="Selection totals for the selected month.">
           {isLoading ? (
@@ -367,15 +541,13 @@ export default function AdminDashboard() {
             <Table>
               <TableHeader>
                 <TableRow className="border-slate-200 hover:bg-transparent">
-                  <TableHead className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">#</TableHead>
-                  <TableHead className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Staff name</TableHead>
-                  <TableHead className="text-right text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Times selected</TableHead>
+                  <TableHead className="text-slate-500">Staff Member</TableHead>
+                  <TableHead className="text-right text-slate-500">Selections</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {staffSelections.map((staff, index) => (
-                  <TableRow key={staff.id} className="border-slate-100 hover:bg-slate-50/70">
-                    <TableCell className="font-medium text-slate-400">{index + 1}</TableCell>
+                {staffSelections.map((staff) => (
+                  <TableRow key={staff.name} className="border-slate-200">
                     <TableCell className="font-medium text-slate-900">{staff.name}</TableCell>
                     <TableCell className="text-right font-semibold text-slate-700">{staff.count}</TableCell>
                   </TableRow>
@@ -385,14 +557,14 @@ export default function AdminDashboard() {
           )}
         </SectionCard>
 
-        <SectionCard title="Recurring issues analysis" description="Compare dissatisfaction reasons against the previous month.">
+        <SectionCard title="Reason movement" description="Month-over-month direction of the most active dissatisfaction reasons.">
           <div className="space-y-3">
             {isDissatisfactionLoading ? (
-              <div className="py-12 text-center text-sm text-slate-500">Loading issue trends…</div>
+              <div className="py-12 text-center text-sm text-slate-500">Loading trend data…</div>
             ) : dissatisfactionError ? (
               <div className="py-12 text-center text-sm text-rose-600">{dissatisfactionError}</div>
             ) : trendData.length === 0 ? (
-              <div className="py-12 text-center text-sm text-slate-500">No data available for this month.</div>
+              <div className="py-12 text-center text-sm text-slate-500">No dissatisfaction trends available.</div>
             ) : (
               trendData.map((item) => {
                 const positive = item.trend === "increasing";

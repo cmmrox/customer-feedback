@@ -47,3 +47,9 @@
 
 - 🔄 In Progress — Stage 09: Documentation and operational polish
   - Current step: implementation log created; README/env/docs cleanup still pending
+
+- ✅ Done — Stage 10: Dashboard negative feedback widget
+  - Added protected paginated admin API for recent negative feedback
+  - Added dashboard widget showing date, exact time, and dissatisfaction reasons
+  - Added Previous/Next pagination with 10 records per page
+  - Verified with npx tsc --noEmit and npm run build
