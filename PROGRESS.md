@@ -53,3 +53,7 @@
   - Added dashboard widget showing date, exact time, and dissatisfaction reasons
   - Added Previous/Next pagination with 10 records per page
   - Verified with npx tsc --noEmit and npm run build
+
+- 🔄 In Progress — Stage 11: Docker release and versioning
+  - Production Dockerfile, pull-based compose, versioning flow, and local image validation completed
+  - Remaining blocker: Docker Hub authorization required before pushing latest and 1.0.0
