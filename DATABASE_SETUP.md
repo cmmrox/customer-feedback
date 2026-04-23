@@ -36,6 +36,7 @@ Create a `.env` file in the project root with values similar to the following:
 DATABASE_URL="mysql://feedback_user:your_password@localhost:3306/customer_feedback"
 NEXTAUTH_SECRET="your-nextauth-secret"
 NEXTAUTH_URL="http://localhost:3000"
+UPLOAD_DIR="./uploads"
 ```
 
 If you use Docker Compose for MySQL, also provide:
@@ -45,6 +46,12 @@ MYSQL_DATABASE="customer_feedback"
 MYSQL_USER="feedback_user"
 MYSQL_PASSWORD="your_password"
 MYSQL_ROOT_PASSWORD="your_root_password"
+```
+
+For Docker app deployments, use a runtime upload path such as:
+
+```env
+UPLOAD_DIR="/app/uploads"
 ```
 
 ---
@@ -166,6 +173,11 @@ Seed data inside the app container:
 ```bash
 docker-compose -f docker-compose-app.yml exec app npm run prisma:seed
 ```
+
+### Upload storage notes
+- Uploaded staff images are stored in runtime storage, not inside `public/`
+- Docker app deployments should mount the uploads folder persistently at `/app/uploads`
+- The app serves those files through `/api/uploads/staff/[filename]`
 
 ---
 

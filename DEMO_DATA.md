@@ -37,13 +37,13 @@ If needed, run the normal seed flow first.
 From the project root:
 
 ```bash
-docker compose -f docker-compose-database.yml exec -T db   mysql -uroot -p${MYSQL_ROOT_PASSWORD:-Yathura321} customer_feedback < demo-data-db.sql
+docker compose -f docker-compose-database.yml exec -T db   mysql -uroot -p${MYSQL_ROOT_PASSWORD:?set MYSQL_ROOT_PASSWORD} customer_feedback < demo-data-db.sql
 ```
 
 ## Import command (explicit password)
 
 ```bash
-docker compose -f docker-compose-database.yml exec -T db   mysql -uroot -pYathura321 customer_feedback < demo-data-db.sql
+docker compose -f docker-compose-database.yml exec -T db   mysql -uroot -p$MYSQL_ROOT_PASSWORD customer_feedback < demo-data-db.sql
 ```
 
 ## What the script is designed for

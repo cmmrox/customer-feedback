@@ -1,6 +1,6 @@
 # Implementation Status and Forward Task List
 
-This document now reflects the **current implementation status** of the project instead of the earlier pre-build task backlog.
+This document reflects the **current implementation status** of the project.
 
 ## 1. Implemented
 
@@ -37,7 +37,7 @@ This document now reflects the **current implementation status** of the project 
 - [x] active staff loading API implemented
 - [x] active dissatisfaction reason loading API implemented
 
-### 1.5 Reporting dashboard
+### 1.5 Admin portal and reporting
 - [x] admin dashboard layout implemented
 - [x] monthly Good count implemented
 - [x] monthly Bad count implemented
@@ -47,8 +47,23 @@ This document now reflects the **current implementation status** of the project 
 - [x] dissatisfaction pie chart implemented
 - [x] dissatisfaction trends chart implemented
 - [x] recurring issues comparison table implemented
+- [x] recent negative feedback widget implemented
 - [x] Excel export for staff selection report implemented
 - [x] PDF export for staff selection report implemented
+
+### 1.6 Staff management
+- [x] staff management CRUD screens implemented
+- [x] admin staff CRUD APIs implemented
+- [x] inline cropper flow implemented
+- [x] persisted staff image upload implemented
+- [x] uploaded image serving implemented through `/api/uploads/staff/[filename]`
+- [x] safe delete/deactivate behavior implemented
+
+### 1.7 Delivery and operations
+- [x] Docker image build support implemented
+- [x] pull-based Docker deployment implemented
+- [x] runtime uploads volume implemented
+- [x] MIT license added
 
 ---
 
@@ -57,7 +72,7 @@ This document now reflects the **current implementation status** of the project 
 - [~] `SystemConfig` model exists, but configuration values are not fully wired into runtime behavior
 - [~] `Feedback.comments` exists in schema, but there is no UI/API path currently using it in the customer flow
 - [~] `FeedbackStaff` and `FeedbackReason` junction tables allow scalable association patterns, but the current UI uses a single follow-up selection path
-- [~] Docker deployment files exist, but production hardening and deployment automation are still basic
+- [~] automated tests exist for helper-level smoke coverage, but end-to-end and broader API coverage are still limited
 - [~] `GET /api/ratings` exists as a legacy placeholder and is not part of the active feature set
 
 ---
@@ -65,7 +80,6 @@ This document now reflects the **current implementation status** of the project 
 ## 3. Not Yet Implemented
 
 ### 3.1 Admin management capabilities
-- [ ] staff management CRUD screens
 - [ ] dissatisfaction reason management screens
 - [ ] category management screens
 - [ ] system configuration management UI
@@ -80,7 +94,6 @@ This document now reflects the **current implementation status** of the project 
 - [ ] richer customer flow transitions/animations
 
 ### 3.3 Platform and operational improvements
-- [ ] automated tests
 - [ ] API test coverage
 - [ ] CI pipeline
 - [ ] health checks
@@ -93,19 +106,19 @@ This document now reflects the **current implementation status** of the project 
 ## 4. Recommended Next Priorities
 
 ### Priority 1
-- [ ] implement staff management UI and APIs
 - [ ] implement dissatisfaction reason/category management UI and APIs
 - [ ] wire `SystemConfig` into runtime behavior where intended
+- [ ] improve end-to-end and API-level automated tests
 
 ### Priority 2
 - [ ] add customer comments support end-to-end
 - [ ] decide whether negative feedback should remain single-select or become multi-select
-- [ ] add automated test coverage for core flows
+- [ ] improve production observability and health checks
 
 ### Priority 3
-- [ ] improve production deployment model
-- [ ] add better operational observability
+- [ ] improve deployment automation
 - [ ] remove or formalize legacy placeholder endpoints
+- [ ] add contribution guide and PR template if open-source collaboration expands
 
 ---
 

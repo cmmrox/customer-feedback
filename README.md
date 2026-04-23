@@ -4,7 +4,7 @@ A kiosk-oriented customer feedback application for retail environments, built wi
 
 The current implementation focuses on two working areas:
 - a **customer-facing kiosk flow** for collecting quick feedback
-- an **admin dashboard** for authentication, reporting, and export
+- an **admin dashboard** for authentication, reporting, exports, and staff management
 
 ---
 
@@ -36,12 +36,13 @@ The current implementation focuses on two working areas:
   - dissatisfaction reason pie chart
   - dissatisfaction trends chart (last 6 months)
   - recurring issues analysis comparing selected month vs previous month
+  - recent negative feedback widget with pagination
 - Staff management with live CRUD:
   - list all staff records
   - create staff members
   - edit staff member details
   - safe delete/deactivate behavior when feedback history exists
-  - inline image crop and backend image persistence under `public/uploads/staff`
+  - inline image crop and backend image persistence
 - Export of staff selection report to:
   - **Excel**
   - **PDF**
@@ -51,6 +52,7 @@ The current implementation focuses on two working areas:
 - Seed script for admin user, staff, categories, dissatisfaction reasons, and system configuration values
 - Docker support for app and database containers
 - Prisma migrations included in the repository
+- Runtime-served uploaded staff images through an API route
 
 ---
 
@@ -89,9 +91,11 @@ The current implementation focuses on two working areas:
 │   ├── components/ui/
 │   ├── hooks/
 │   └── lib/
+├── uploads/
 ├── DATABASE_SETUP.md
 ├── Dockerfile
 ├── ERD.md
+├── LICENSE
 ├── PRD.md
 ├── README.md
 └── TASKS.md
@@ -117,7 +121,7 @@ The current implementation focuses on two working areas:
 2. Admin signs in with username and password
 3. Authenticated user is redirected to `/admin/dashboard`
 4. Dashboard fetches reporting data from API routes
-5. Admin can export the monthly staff selection report to Excel or PDF
+5. Admin can manage staff records and export the monthly staff selection report to Excel or PDF
 
 ---
 
@@ -141,7 +145,11 @@ The current implementation focuses on two working areas:
 - `DELETE /api/admin/staff/[id]`
 - `POST /api/admin/staff/image`
 
+### Uploaded media
+- `GET /api/uploads/staff/[filename]`
+
 ### Dashboard/reporting
+- `GET /api/admin/dashboard/negative-feedback`
 - `GET /api/staff-selections?month=...`
 - `GET /api/staff-selection-trends`
 - `GET /api/good-summary?month=...`
@@ -149,6 +157,20 @@ The current implementation focuses on two working areas:
 - `GET /api/dissatisfaction-comparison?month=...`
 - `GET /api/dissatisfaction-trends`
 - `GET /api/ratings` *(legacy placeholder route; currently returns an empty array)*
+
+---
+
+## Image Upload Behavior
+
+Uploaded staff images are **not** served from `public/uploads` anymore.
+
+Current behavior:
+- uploaded files are stored in runtime storage under `uploads/staff`
+- Docker deployments mount that folder as a persistent volume at `/app/uploads`
+- the app serves uploaded images through:
+  - `/api/uploads/staff/[filename]`
+
+This avoids production issues where newly written files under `public/` were not always served immediately by the running Next.js process.
 
 ---
 
@@ -164,6 +186,13 @@ MYSQL_DATABASE="customer_feedback"
 MYSQL_USER="feedback_user"
 MYSQL_PASSWORD="your_password"
 MYSQL_ROOT_PASSWORD="your_root_password"
+UPLOAD_DIR="./uploads"
+```
+
+For Docker Compose app deployments, `UPLOAD_DIR` should point to the mounted runtime folder, e.g.:
+
+```env
+UPLOAD_DIR="/app/uploads"
 ```
 
 ---
@@ -176,7 +205,7 @@ npm install
 ```
 
 ### 2. Configure environment
-Create a `.env` file with your database and NextAuth settings.
+Create a `.env` file with your database, NextAuth, and upload settings.
 
 ### 3. Run database migrations
 ```bash
@@ -221,6 +250,10 @@ docker-compose -f docker-compose-app.yml exec app npx prisma migrate deploy
 docker-compose -f docker-compose-app.yml exec app npm run prisma:seed
 ```
 
+### Notes
+- `docker-compose-app.yml` is configured to run the app with a persistent uploads volume
+- uploaded staff images should be available immediately without restarting the app
+
 ---
 
 ## Seeded Development Data
@@ -229,7 +262,7 @@ The seed script currently creates:
 - 1 admin user
   - username: `admin`
   - password: `admin123`
-- 8 staff records with image paths
+- 8 staff records with seeded image paths
 - 3 categories
 - 5 dissatisfaction reasons
 - 3 system configuration records
@@ -240,7 +273,7 @@ Change these values before any real deployment.
 
 ## Current Limitations
 
-The documentation in this repository is now aligned to the **current implementation**, which means the following are **not** part of the implemented feature set yet:
+The following are **not** part of the implemented feature set yet:
 - dissatisfaction reason management UI
 - category management UI
 - system configuration UI
@@ -251,6 +284,12 @@ The documentation in this repository is now aligned to the **current implementat
 
 ---
 
+## License
+
+This project is licensed under the **MIT License**. See `LICENSE` for details.
+
+---
+
 ## Related Documentation
 
 - `PRD.md` — product requirements for the current implementation
@@ -258,91 +297,3 @@ The documentation in this repository is now aligned to the **current implementat
 - `DATABASE_SETUP.md` — database and Prisma setup
 - `TASKS.md` — implemented work, pending work, and future enhancements
 - `CLAUDE.md` — contributor/developer guidance for this repository
-
----
-
-## Docker release and deployment
-
-This project is prepared for Docker Hub releases using semantic version tags plus the moving `latest` tag.
-
-### Canonical version source
-
-The application version is stored in `package.json`.
-
-Example:
-```json
-"version": "1.0.0"
-```
-
-### Release tags
-
-Each release should publish:
-- `cmmrox/customer-feedback:<exact-version>`
-- `cmmrox/customer-feedback:latest`
-
-For the first production release:
-- `cmmrox/customer-feedback:1.0.0`
-- `cmmrox/customer-feedback:latest`
-
-### Build and push to Docker Hub
-
-From the project root:
-
-```bash
-chmod +x scripts/docker-release.sh
-./scripts/docker-release.sh
-```
-
-That script will:
-- read the version from `package.json`
-- build the image
-- tag the image with the exact version
-- tag the same image as `latest`
-- push both tags to Docker Hub
-
-If you want to publish a different explicit version after updating `package.json`:
-
-```bash
-./scripts/docker-release.sh 1.0.1
-```
-
-### Production deployment with Docker Compose
-
-The production compose file pulls the image directly from Docker Hub instead of building from source.
-
-Default behavior:
-```bash
-docker compose -f docker-compose-app.yml --env-file .env.prod pull
-docker compose -f docker-compose-app.yml --env-file .env.prod up -d
-```
-
-To deploy a specific version instead of `latest`:
-
-```bash
-APP_IMAGE_TAG=1.0.0 docker compose -f docker-compose-app.yml --env-file .env.prod pull
-APP_IMAGE_TAG=1.0.0 docker compose -f docker-compose-app.yml --env-file .env.prod up -d
-```
-
-### Uploaded staff images
-
-Staff images are written to `/app/uploads` in the container. The compose file mounts a named Docker volume so uploaded images survive container restarts and image updates.
-
-### Database migrations
-
-Run Prisma migrations separately during deployment if needed:
-
-```bash
-docker compose -f docker-compose-app.yml --env-file .env.prod exec app npx prisma migrate deploy
-```
-
-### Future version management policy
-
-Use semantic versioning:
-- `PATCH` (`1.0.1`) for bug fixes
-- `MINOR` (`1.1.0`) for backward-compatible features
-- `MAJOR` (`2.0.0`) for breaking changes
-
-Recommended production practice:
-- publish both `latest` and exact version tags
-- deploy exact version tags in production for safer rollbacks
-- keep `latest` for convenience and quick smoke deployments
