@@ -6,11 +6,12 @@ This file provides guidance to coding agents and contributors working with code 
 
 This repository contains a **Next.js-based Customer Feedback System** with:
 - a customer-facing kiosk flow
-- an authenticated admin dashboard for reporting
+- an authenticated admin dashboard for reporting and staff management
 - Prisma + MySQL persistence
 - NextAuth.js credential-based authentication
+- runtime-served uploaded staff images
 
-This document is aligned to the **current implementation**, not the earlier broader feature plan.
+This document is aligned to the **current implementation**.
 
 ## Essential Commands
 
@@ -20,6 +21,7 @@ npm run dev              # Start dev server with Turbopack
 npm run build            # Production build (always run to verify no errors)
 npm run lint             # Run ESLint
 npm run format           # Format code with Prettier
+npm run test:staff       # Helper-level smoke tests for staff validation/storage
 ```
 
 ### Database operations
@@ -63,9 +65,10 @@ Implemented flow:
 - protected `/admin` routes
 - dashboard analytics and charts
 - export of monthly staff-selection report to Excel and PDF
+- staff management CRUD UI and APIs
+- image crop + persisted upload flow for staff profile images
 
 Not implemented yet:
-- staff management CRUD screens
 - reason/category management screens
 - config/settings management UI
 - password reset
@@ -118,13 +121,23 @@ Note: timeout behavior is currently hardcoded in the UI; it is not dynamically r
 
 ---
 
+## Uploaded Staff Images
+
+Current behavior:
+- uploads are stored in runtime storage (`uploads/staff` or `/app/uploads/staff` in Docker)
+- the app serves uploaded images through:
+  - `GET /api/uploads/staff/[filename]`
+- this avoids production issues caused by writing new files into `public/` at runtime
+
+---
+
 ## Important Files
 
 ### Configuration and schema
-- `.cursorrules` — repository development standards
 - `prisma/schema.prisma` — source of truth for the database schema
 - `src/lib/db.ts` — shared Prisma client
 - `src/lib/auth.ts` — NextAuth configuration
+- `src/lib/file-storage.ts` — runtime upload save/read/remove helpers
 
 ### Customer routes
 - `src/app/page.tsx` — home screen and initial feedback creation
@@ -137,6 +150,7 @@ Note: timeout behavior is currently hardcoded in the UI; it is not dynamically r
 - `src/app/admin/login/login-form.tsx`
 - `src/app/admin/dashboard/page.tsx`
 - `src/app/admin/error/page.tsx`
+- `src/app/admin/staff/page.tsx`
 
 ### Key API routes
 - `src/app/api/feedback/route.ts`
@@ -144,6 +158,10 @@ Note: timeout behavior is currently hardcoded in the UI; it is not dynamically r
 - `src/app/api/feedback-dissatisfaction/route.ts`
 - `src/app/api/staff/route.ts`
 - `src/app/api/dissatisfaction-reasons/route.ts`
+- `src/app/api/admin/staff/route.ts`
+- `src/app/api/admin/staff/[id]/route.ts`
+- `src/app/api/admin/staff/image/route.ts`
+- `src/app/api/uploads/staff/[filename]/route.ts`
 - reporting routes under `src/app/api/*`
 
 ---
@@ -175,13 +193,12 @@ Current reporting is based on:
 
 ## Current Known Gaps
 
-These are important because older docs may imply they already exist:
-- no staff CRUD UI
 - no settings/config UI
 - no customer comments flow
 - no multi-select dissatisfaction reason UI
 - no password reset flow
 - no meaningful use of `GET /api/ratings`
+- no broad end-to-end test coverage yet
 
 ---
 
@@ -189,7 +206,8 @@ These are important because older docs may imply they already exist:
 
 After making changes, contributors should ideally:
 1. run `npm run build`
-2. test the customer flow
-3. test admin login and dashboard loading
-4. verify Prisma migrations and seed behavior when schema/data changes are involved
-5. keep `README.md`, `PRD.md`, `ERD.md`, and `TASKS.md` in sync with implementation changes
+2. run `npm run test:staff` for staff/upload-related changes
+3. test the customer flow
+4. test admin login, dashboard loading, and staff management flows
+5. verify Prisma migrations and seed behavior when schema/data changes are involved
+6. keep `README.md`, `PRD.md`, `ERD.md`, and `TASKS.md` in sync with implementation changes

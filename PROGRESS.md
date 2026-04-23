@@ -1,6 +1,6 @@
 # PROGRESS.md
 
-## Staff Management — Real Implementation
+## Customer Feedback System Progress
 
 - ✅ Done — Stage 00: Admin staff UI preview built
 - ✅ Done — Stage 00.1: Inline image crop editor added
@@ -25,7 +25,7 @@
 
 - ✅ Done — Stage 04: Real image upload and storage
   - Added backend image upload endpoint under /api/admin/staff/image
-  - Added file storage helper for persisted staff image files under public/uploads/staff
+  - Added file storage helper for persisted staff image files
   - Cropped image payloads now save as real reusable URLs
 
 - ✅ Done — Stage 05: Connect cropper save to backend
@@ -45,8 +45,9 @@
   - Added helper-level smoke tests for validation and file storage
   - Verified with npm run test:staff, npx tsc --noEmit, and npm run build
 
-- 🔄 In Progress — Stage 09: Documentation and operational polish
-  - Current step: implementation log created; README/env/docs cleanup still pending
+- ✅ Done — Stage 09: Documentation and operational polish
+  - README, setup docs, contributor docs, and project tracking updated to reflect the current implementation
+  - MIT license added for open contribution readiness
 
 - ✅ Done — Stage 10: Dashboard negative feedback widget
   - Added protected paginated admin API for recent negative feedback
@@ -54,6 +55,11 @@
   - Added Previous/Next pagination with 10 records per page
   - Verified with npx tsc --noEmit and npm run build
 
-- 🔄 In Progress — Stage 11: Docker release and versioning
+- ✅ Done — Stage 11: Docker release and versioning
   - Production Dockerfile, pull-based compose, versioning flow, and local image validation completed
-  - Remaining blocker: Docker Hub authorization required before pushing latest and 1.0.0
+  - Docker Hub image publishing and VPS deployment completed
+
+- ✅ Done — Stage 12: Runtime upload-serving fix
+  - Moved uploaded staff image serving to `/api/uploads/staff/[filename]`
+  - Runtime uploads are now stored outside `public/`
+  - Verified live Docker deployment serves newly uploaded images immediately without app restart
